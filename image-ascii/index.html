@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Image — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    #ascii-output {
+      white-space: pre;
+      font-size: 7px;
+      line-height: 1.1;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/image-ascii</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body">
+
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload image</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+      <span class="sb-upload-kbd">cmd + O</span>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+
+    <!-- Preprocessing -->
+    <div class="sb-section" id="sec-preprocess" style="margin-top:8px">
+      <div class="sb-section-header" data-section="sec-preprocess">
+        <span class="sb-section-title">Image Preprocessing</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blur</span>
+          <input type="range" id="sl-blur" min="0" max="10" step="0.5" value="0">
+          <span class="sb-val" id="val-blur">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Grain</span>
+          <input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-grain">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Gamma</span>
+          <input type="range" id="sl-gamma" min="0.1" max="2" step="0.1" value="1">
+          <span class="sb-val" id="val-gamma">1</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Black Point</span>
+          <input type="range" id="sl-black" min="0" max="255" step="1" value="0">
+          <span class="sb-val" id="val-black">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">White Point</span>
+          <input type="range" id="sl-white" min="0" max="255" step="1" value="255">
+          <span class="sb-val" id="val-white">255</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASCII settings -->
+    <div class="sb-section">
+      <div class="sb-section-body" style="padding:6px 0 4px">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Characters</span>
+          <input type="range" id="sl-charcols" min="20" max="300" step="1" value="80">
+          <span class="sb-val" id="val-charcols">80</span>
+        </div>
+        <div class="sb-input-row">
+          <div class="sb-input-lbl">Character Set</div>
+          <input type="text" class="sb-input" id="charset-input" value=" .:-=+*#%@dwsqcd">
+        </div>
+        <div class="sb-check" id="chk-comments">
+          <span class="sb-check-indicator">[ ]</span>
+          <span class="sb-check-lbl">Comments</span>
+        </div>
+        <div class="sb-check" id="chk-borders">
+          <span class="sb-check-indicator">[ ]</span>
+          <span class="sb-check-lbl">Show Borders</span>
+        </div>
+        <div id="border-style-row" style="display:none">
+          <div class="sb-toggle-row">
+            <span class="sb-toggle-lbl">Border</span>
+            <div class="sb-toggle-group" id="border-style">
+              <button class="sb-toggle-btn active" data-val="single">single</button>
+              <button class="sb-toggle-btn" data-val="double">double</button>
+              <button class="sb-toggle-btn" data-val="thick">thick</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sb-body -->
+
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-copy">
+      <span>Copy to clipboard</span>
+      <span class="sb-kbd">cmd + S</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <pre id="ascii-output" class="visible"></pre>
+  <div id="upload-overlay">
+    <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+    <span>Upload an image to get started</span>
+  </div>
+</div>
+
+<script>
+const state = {
+  srcImage:    null,
+  blurAmount:  0,
+  grainAmount: 0,
+  gamma:       1,
+  blackPoint:  0,
+  whitePoint:  255,
+  charCols:    80,
+  charset:     ' .:-=+*#%@dwsqcd',
+  comments:    false,
+  borders:     false,
+  borderStyle: 'single',
+};
+
+const asciiOutput = document.getElementById('ascii-output');
+const canvasArea  = document.getElementById('canvas-area');
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+// ─── Glyph darkness sort ──────────────────────────────────────────────────────
+const darknessCache = new Map();
+function analyzeGlyph(ch) {
+  if (darknessCache.has(ch)) return darknessCache.get(ch);
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.font = '16px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 32, 32);
+  ctx.fillStyle = 'black'; ctx.fillText(ch, 16, 16);
+  const d = ctx.getImageData(0, 0, 32, 32).data;
+  let sum = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i+3] > 0) { n++; sum += (255 - (d[i] + d[i+1] + d[i+2]) / 3) / 255; }
+  }
+  const v = n ? sum / n : 0;
+  darknessCache.set(ch, v);
+  return v;
+}
+
+let sortedChars = '';
+function getSortedChars() {
+  const uniq = [...new Set(state.charset)];
+  const dark = new Map(uniq.map(c => [c, analyzeGlyph(c)]));
+  return uniq.sort((a, b) => dark.get(a) - dark.get(b)).join('');
+}
+
+// ─── Preprocessing ────────────────────────────────────────────────────────────
+function preprocessToCanvas() {
+  if (!state.srcImage) return null;
+  const img = state.srcImage;
+  const scale = Math.min(800 / img.width, 800 / img.height);
+  const W = Math.round(img.width * scale);
+  const H = Math.round(img.height * scale);
+  const buf = document.createElement('canvas');
+  buf.width = W; buf.height = H;
+  const ctx = buf.getContext('2d', { willReadFrequently: true });
+  if (state.blurAmount > 0) {
+    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+    const tCtx = tmp.getContext('2d'); tCtx.filter = `blur(${state.blurAmount}px)`;
+    tCtx.drawImage(img, 0, 0, W, H);
+    ctx.drawImage(tmp, 0, 0);
+  } else {
+    ctx.drawImage(img, 0, 0, W, H);
+  }
+  const id = ctx.getImageData(0, 0, W, H);
+  const px = id.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (state.grainAmount > 0) {
+      const n = (0.5 - Math.random()) * state.grainAmount * 255;
+      px[i]   = clamp(px[i]+n, 0, 255); px[i+1] = clamp(px[i+1]+n, 0, 255); px[i+2] = clamp(px[i+2]+n, 0, 255);
+    }
+    if (state.gamma !== 1) {
+      px[i]   = clamp(255*Math.pow(px[i]/255,state.gamma),0,255);
+      px[i+1] = clamp(255*Math.pow(px[i+1]/255,state.gamma),0,255);
+      px[i+2] = clamp(255*Math.pow(px[i+2]/255,state.gamma),0,255);
+    }
+    if (state.blackPoint !== 0 || state.whitePoint !== 255) {
+      const s = 255 / (state.whitePoint - state.blackPoint);
+      px[i]   = clamp((px[i]-state.blackPoint)*s, 0, 255);
+      px[i+1] = clamp((px[i+1]-state.blackPoint)*s, 0, 255);
+      px[i+2] = clamp((px[i+2]-state.blackPoint)*s, 0, 255);
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return buf;
+}
+
+// ─── Image to ASCII ───────────────────────────────────────────────────────────
+function imageToAscii(buf) {
+  const chars = getSortedChars();
+  if (!chars.length) return '';
+  const ctx = buf.getContext('2d', { willReadFrequently: true });
+  const W = buf.width, H = buf.height;
+  const cols = Math.max(4, Math.round(state.charCols));
+  const rows = Math.max(2, Math.round(cols * (H / W) * 0.45));
+  const cw = W / cols, ch = H / rows;
+
+  // Read entire image once to avoid thousands of individual getImageData calls
+  const fullId = ctx.getImageData(0, 0, W, H);
+  const px = fullId.data;
+
+  const lines = [];
+  for (let r = 0; r < rows; r++) {
+    const sy = clamp(Math.floor(r * ch), 0, H - 1);
+    let line = '';
+    for (let c = 0; c < cols; c++) {
+      const sx = clamp(Math.floor(c * cw), 0, W - 1);
+      const o  = (sy * W + sx) * 4;
+      const a  = px[o + 3] / 255;
+      const bright = ((px[o] + px[o+1] + px[o+2]) / 3 / 255) * a + (1 - a);
+      const idx = Math.floor((1 - bright) * (chars.length - 1));
+      line += chars[clamp(idx, 0, chars.length - 1)] || chars[0];
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+const measureCtx = document.createElement('canvas').getContext('2d');
+function fitAsciiWidth(widestLineLen) {
+  if (!widestLineLen) return;
+  const cs = getComputedStyle(asciiOutput);
+  const availableWidth = canvasArea.clientWidth
+    - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  if (availableWidth <= 0) return;
+
+  const refPx = 100;
+  const family = cs.fontFamily || 'monospace';
+  measureCtx.font = `${refPx}px ${family}`;
+  const refCharWidth = measureCtx.measureText('M').width;
+  const letterSpacingEm = 0.04; // matches CSS letter-spacing: 0.04em
+  const refWidthPerChar = refCharWidth + letterSpacingEm * refPx;
+  const totalRefWidth = widestLineLen * refWidthPerChar;
+  if (totalRefWidth <= 0) return;
+
+  const neededFontSize = refPx * (availableWidth / totalRefWidth);
+  asciiOutput.style.fontSize = neededFontSize + 'px';
+}
+
+function renderAscii() {
+  if (!state.srcImage) return;
+  const buf  = preprocessToCanvas();
+  if (!buf) return;
+  const grid = imageToAscii(buf);
+
+  const BORDERS = {
+    single: { tl:'┌', tr:'┐', bl:'└', br:'┘', h:'─', v:'│' },
+    double: { tl:'╔', tr:'╗', bl:'╚', br:'╝', h:'═', v:'║' },
+    thick:  { tl:'┏', tr:'┓', bl:'┗', br:'┛', h:'━', v:'┃' },
+  };
+
+  let lines;
+  if (state.borders) {
+    const b   = BORDERS[state.borderStyle];
+    const w   = grid[0] ? grid[0].length : 0;
+    const top = b.tl + b.h.repeat(w) + b.tr;
+    const bot = b.bl + b.h.repeat(w) + b.br;
+    lines = [top, ...grid.map(l => b.v + l + b.v), bot];
+  } else {
+    lines = grid;
+  }
+
+  const widestLineLen = lines.reduce((m, l) => Math.max(m, l.length), 0);
+
+  let text;
+  if (state.comments) {
+    text = '/*\n' + lines.join('\n') + '\n*/';
+  } else {
+    text = lines.join('\n');
+  }
+
+  asciiOutput.textContent = text;
+  fitAsciiWidth(widestLineLen);
+}
+
+let rafScheduled = false;
+function scheduleFrame() {
+  if (rafScheduled) return;
+  rafScheduled = true;
+  requestAnimationFrame(() => { rafScheduled = false; renderAscii(); });
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+const uploadOverlay = document.getElementById('upload-overlay');
+const fileInput     = document.getElementById('file-input');
+
+document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    state.srcImage = img;
+    URL.revokeObjectURL(url);
+    uploadOverlay.classList.add('hidden');
+    sortedChars = '';
+    renderAscii();
+  };
+  img.src = url;
+  fileInput.value = '';
+});
+
+// ─── Slider bindings ──────────────────────────────────────────────────────────
+function bindSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+    scheduleFrame();
+  });
+}
+bindSlider('sl-blur',      'val-blur',      'blurAmount',  v => v);
+bindSlider('sl-grain',     'val-grain',     'grainAmount', v => v.toFixed(2));
+bindSlider('sl-gamma',     'val-gamma',     'gamma',       v => v.toFixed(1));
+bindSlider('sl-black',     'val-black',     'blackPoint',  v => Math.round(v));
+bindSlider('sl-white',     'val-white',     'whitePoint',  v => Math.round(v));
+bindSlider('sl-charcols',  'val-charcols',  'charCols',    v => Math.round(v));
+
+window.addEventListener('resize', scheduleFrame);
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(scheduleFrame);
+}
+
+// ─── Section collapse ─────────────────────────────────────────────────────────
+document.querySelectorAll('.sb-section-header').forEach(hdr => {
+  hdr.addEventListener('click', () => {
+    const section = document.getElementById(hdr.dataset.section) || hdr.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    hdr.querySelector('.sb-section-toggle').textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── Charset input ────────────────────────────────────────────────────────────
+document.getElementById('charset-input').addEventListener('input', e => {
+  state.charset = e.target.value;
+  sortedChars = '';
+  scheduleFrame();
+});
+
+// ─── Checkboxes ───────────────────────────────────────────────────────────────
+function bindCheck(id, key, onToggle) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', () => {
+    state[key] = !state[key];
+    el.classList.toggle('checked', state[key]);
+    el.querySelector('.sb-check-indicator').textContent = state[key] ? '[*]' : '[ ]';
+    if (onToggle) onToggle();
+    scheduleFrame();
+  });
+}
+bindCheck('chk-comments', 'comments');
+bindCheck('chk-borders',  'borders', () => {
+  document.getElementById('border-style-row').style.display = state.borders ? '' : 'none';
+});
+
+// ─── Border style toggle ──────────────────────────────────────────────────────
+document.querySelectorAll('#border-style .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#border-style .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.borderStyle = btn.dataset.val;
+    scheduleFrame();
+  });
+});
+
+// ─── Copy ─────────────────────────────────────────────────────────────────────
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const text = asciiOutput.textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+  const btn = document.getElementById('btn-copy');
+  const orig = btn.querySelector('span').textContent;
+  btn.querySelector('span').textContent = 'Copied!';
+  setTimeout(() => btn.querySelector('span').textContent = orig, 1500);
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); document.getElementById('btn-copy').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); fileInput.click(); }
+});
+
+lucide.createIcons();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

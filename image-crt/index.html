@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRT — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    #canvas-area canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/image-crt</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body">
+
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload image</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+      <span class="sb-upload-kbd">cmd + O</span>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+
+    <!-- Panel Type -->
+    <div class="sb-section" style="margin-top:8px">
+      <div class="sb-section-body" style="padding:6px 0 4px">
+        <div class="sb-toggle-row">
+          <span class="sb-toggle-lbl">Type</span>
+          <div class="sb-toggle-group" id="crt-type">
+            <button class="sb-toggle-btn active" data-val="0">Monitor</button>
+            <button class="sb-toggle-btn" data-val="1">TV</button>
+            <button class="sb-toggle-btn" data-val="2">LCD</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="sb-section" id="sec-display">
+      <div class="sb-section-header" data-section="sec-display">
+        <span class="sb-section-title">Display</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Distortion</span>
+          <input type="range" id="sl-distortion" min="0" max="0.08" step="0.001" value="0.02">
+          <span class="sb-val" id="val-distortion">0.02</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Dot Scale</span>
+          <input type="range" id="sl-dotscale" min="0.01" max="2" step="0.01" value="0.9">
+          <span class="sb-val" id="val-dotscale">0.90</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Dot Pitch</span>
+          <input type="range" id="sl-dotpitch" min="1" max="30" step="0.1" value="4">
+          <span class="sb-val" id="val-dotpitch">4.0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Falloff</span>
+          <input type="range" id="sl-falloff" min="0.01" max="1" step="0.01" value="0.3">
+          <span class="sb-val" id="val-falloff">0.30</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Glow Radius</span>
+          <input type="range" id="sl-glowradius" min="0" max="0.5" step="0.01" value="0.1">
+          <span class="sb-val" id="val-glowradius">0.10</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Glow Intensity</span>
+          <input type="range" id="sl-glowintensity" min="0" max="1" step="0.01" value="0.3">
+          <span class="sb-val" id="val-glowintensity">0.30</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bloom -->
+    <div class="sb-section" id="sec-bloom">
+      <div class="sb-section-header" data-section="sec-bloom">
+        <span class="sb-section-title">Bloom</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-toggle-row">
+          <span class="sb-toggle-lbl">Blend</span>
+          <div class="sb-toggle-group" id="bloom-blend">
+            <button class="sb-toggle-btn active" data-val="0">Screen</button>
+            <button class="sb-toggle-btn" data-val="1">Light</button>
+            <button class="sb-toggle-btn" data-val="2">HDR</button>
+          </div>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Threshold</span>
+          <input type="range" id="sl-bloomthresh" min="0" max="1" step="0.01" value="0.6">
+          <span class="sb-val" id="val-bloomthresh">0.60</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Intensity</span>
+          <input type="range" id="sl-bloomintensity" min="0" max="5" step="0.1" value="1">
+          <span class="sb-val" id="val-bloomintensity">1.0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Radius</span>
+          <input type="range" id="sl-bloomradius" min="0" max="10" step="0.1" value="3">
+          <span class="sb-val" id="val-bloomradius">3.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Convergence -->
+    <div class="sb-section" id="sec-conv">
+      <div class="sb-section-header" data-section="sec-conv">
+        <span class="sb-section-title">Convergence</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Red X</span>
+          <input type="range" id="sl-redx" min="-1" max="1" step="0.01" value="0.01">
+          <span class="sb-val" id="val-redx">0.01</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Red Y</span>
+          <input type="range" id="sl-redy" min="-1" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-redy">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blue X</span>
+          <input type="range" id="sl-bluex" min="-1" max="1" step="0.01" value="-0.01">
+          <span class="sb-val" id="val-bluex">-0.01</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blue Y</span>
+          <input type="range" id="sl-bluey" min="-1" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-bluey">0</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sb-body -->
+
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-export">
+      <span>Export PNG</span>
+      <span class="sb-kbd">cmd + S</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <canvas id="gl-canvas"></canvas>
+  <div id="upload-overlay">
+    <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+    <span>Upload an image to get started</span>
+  </div>
+</div>
+
+<!-- WebGL shaders -->
+<script id="vs" type="x-shader/x-vertex">
+attribute vec2 a_pos;
+varying vec2 v_uv;
+void main() {
+  v_uv = a_pos * 0.5 + 0.5;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}
+</script>
+
+<script id="fs-crt" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_tex;
+uniform vec2 u_res;
+uniform float u_distortion;
+uniform float u_dotScale;
+uniform float u_dotPitch;
+uniform float u_falloff;
+uniform float u_glowRadius;
+uniform float u_glowIntensity;
+uniform float u_redX;
+uniform float u_redY;
+uniform float u_blueX;
+uniform float u_blueY;
+uniform int u_type; // 0=monitor, 1=tv, 2=lcd
+uniform float u_imgAspect;
+uniform float u_canvasAspect;
+varying vec2 v_uv;
+
+vec2 barrelDistort(vec2 uv, float k) {
+  vec2 cc = uv - 0.5;
+  float d = dot(cc, cc) * k;
+  return uv + cc * (1.0 + d) * d;
+}
+
+// Maps a full-canvas UV into the source image's UV space so the image is
+// "contained" within the canvas at its native aspect ratio (letter/pillarboxed)
+// instead of stretched to fill it.
+vec2 containUV(vec2 uv) {
+  float scale = u_canvasAspect / u_imgAspect;
+  if (scale >= 1.0) {
+    return vec2((uv.x - 0.5) * scale + 0.5, uv.y);
+  } else {
+    return vec2(uv.x, (uv.y - 0.5) / scale + 0.5);
+  }
+}
+
+vec3 sampleImg(vec2 uv) {
+  vec2 iuv = containUV(uv);
+  if (iuv.x < 0.0 || iuv.x > 1.0 || iuv.y < 0.0 || iuv.y > 1.0) return vec3(0.0);
+  return texture2D(u_tex, iuv).rgb;
+}
+
+float dotMask(vec2 p, vec2 center, float size) {
+  float d = length(p - center);
+  return smoothstep(size, size * (1.0 - u_falloff), d);
+}
+
+void main() {
+  vec2 uv = barrelDistort(v_uv, u_distortion);
+
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
+
+  // Convergence offset
+  vec2 redUV  = clamp(uv + vec2(u_redX,  u_redY)  * 0.005, 0.0, 1.0);
+  vec2 blueUV = clamp(uv + vec2(u_blueX, u_blueY) * 0.005, 0.0, 1.0);
+
+  float r = sampleImg(redUV).r;
+  float g = sampleImg(uv).g;
+  float b = sampleImg(blueUV).b;
+
+  vec3 col = vec3(r, g, b);
+
+  // Subpixel mask
+  vec2 screenPos = v_uv * u_res;
+  float pitch = u_dotPitch;
+  float size  = pitch * u_dotScale * 0.5;
+
+  if (u_type == 2) {
+    // LCD: sharp vertical stripes
+    float col3 = mod(screenPos.x, pitch * 3.0);
+    float rm = smoothstep(0.0, 1.0, 1.0 - abs(col3 - pitch * 0.5) / (pitch * 0.5));
+    float gm = smoothstep(0.0, 1.0, 1.0 - abs(col3 - pitch * 1.5) / (pitch * 0.5));
+    float bm = smoothstep(0.0, 1.0, 1.0 - abs(col3 - pitch * 2.5) / (pitch * 0.5));
+    col *= vec3(rm * 1.5, gm * 1.5, bm * 1.5);
+  } else if (u_type == 0) {
+    // Monitor: circular dots in aperture grille
+    vec2 cell = floor(screenPos / pitch);
+    vec2 local = screenPos - cell * pitch;
+    float offset = mod(cell.y, 2.0) * pitch * 0.5;
+    vec2 rCenter = vec2(mod(local.x + offset, pitch * 3.0), local.y);
+    vec3 subpix;
+    subpix.r = dotMask(rCenter, vec2(pitch * 0.5, pitch * 0.5), size);
+    subpix.g = dotMask(rCenter, vec2(pitch * 1.5, pitch * 0.5), size);
+    subpix.b = dotMask(rCenter, vec2(pitch * 2.5, pitch * 0.5), size);
+    col *= subpix * 1.8 + 0.2;
+  } else {
+    // TV: shadow mask
+    vec2 cell  = floor(screenPos / pitch);
+    vec2 local = screenPos - cell * pitch;
+    float xoff = mod(cell.y, 2.0) * pitch * 0.5;
+    float cx   = mod(local.x + xoff, pitch * 3.0);
+    float dm   = dotMask(vec2(cx, local.y), vec2(pitch * 1.5, pitch * 0.5), size);
+    col *= dm * 1.8 + 0.2;
+  }
+
+  // Glow
+  if (u_glowIntensity > 0.0) {
+    vec3 glow = vec3(
+      sampleImg(uv + vec2(u_glowRadius, 0.0) / u_res).r,
+      sampleImg(uv).g,
+      sampleImg(uv - vec2(u_glowRadius, 0.0) / u_res).b
+    );
+    col += glow * u_glowIntensity * 0.5;
+  }
+
+  // Gamma
+  col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script id="fs-bright" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_tex;
+uniform float u_threshold;
+varying vec2 v_uv;
+void main() {
+  vec3 col = texture2D(u_tex, v_uv).rgb;
+  float lum = dot(col, vec3(0.299, 0.587, 0.114));
+  gl_FragColor = vec4(lum > u_threshold ? col : vec3(0.0), 1.0);
+}
+</script>
+
+<script id="fs-blur" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_tex;
+uniform vec2 u_dir;
+uniform vec2 u_res;
+uniform float u_radius;
+varying vec2 v_uv;
+void main() {
+  vec3 sum = vec3(0.0);
+  float total = 0.0;
+  float sigma = u_radius;
+  for (int i = -6; i <= 6; i++) {
+    float fi = float(i);
+    float w = exp(-fi * fi / (2.0 * sigma * sigma));
+    sum += texture2D(u_tex, v_uv + u_dir * fi / u_res).rgb * w;
+    total += w;
+  }
+  gl_FragColor = vec4(sum / total, 1.0);
+}
+</script>
+
+<script id="fs-combine" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_base;
+uniform sampler2D u_bloom;
+uniform float u_intensity;
+uniform int u_blend;
+varying vec2 v_uv;
+void main() {
+  vec3 base  = texture2D(u_base, v_uv).rgb;
+  vec3 bloom = texture2D(u_bloom, v_uv).rgb * u_intensity;
+  vec3 out_col;
+  if (u_blend == 1) {
+    // lighten
+    out_col = max(base, bloom);
+  } else if (u_blend == 2) {
+    // HDR Reinhard
+    vec3 hdr = base + bloom;
+    out_col = hdr / (1.0 + hdr);
+  } else {
+    // screen
+    out_col = 1.0 - (1.0 - base) * (1.0 - bloom);
+  }
+  gl_FragColor = vec4(clamp(out_col, 0.0, 1.0), 1.0);
+}
+</script>
+
+<script>
+const state = {
+  srcImage:     null,
+  crtType:      0,
+  distortion:   0.02,
+  dotScale:     0.9,
+  dotPitch:     4,
+  falloff:      0.3,
+  glowRadius:   0.1,
+  glowIntensity:0.3,
+  bloomBlend:   0,
+  bloomThresh:  0.6,
+  bloomIntensity:1,
+  bloomRadius:  3,
+  redX: 0.01, redY: 0, blueX: -0.01, blueY: 0,
+  imgAspect: 1,
+};
+
+const canvas   = document.getElementById('gl-canvas');
+const canvasArea = document.getElementById('canvas-area');
+const gl       = canvas.getContext('webgl');
+const uploadOverlay = document.getElementById('upload-overlay');
+const fileInput     = document.getElementById('file-input');
+
+if (!gl) {
+  document.getElementById('canvas-area').innerHTML = '<div style="color:var(--text-mid);display:flex;align-items:center;justify-content:center;height:100%;font-size:13px;">WebGL not supported in this browser.</div>';
+}
+
+function syncSize() {
+  canvas.width  = canvasArea.clientWidth;
+  canvas.height = canvasArea.clientHeight;
+  if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', () => { syncSize(); scheduleFrame(); });
+syncSize();
+
+// ─── GL helpers ───────────────────────────────────────────────────────────────
+function compileShader(type, src) {
+  const sh = gl.createShader(type);
+  gl.shaderSource(sh, src);
+  gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS))
+    console.error(gl.getShaderInfoLog(sh));
+  return sh;
+}
+function createProgram(vsSrc, fsSrc) {
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, vsSrc));
+  gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, fsSrc));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
+    console.error(gl.getProgramInfoLog(prog));
+  return prog;
+}
+function createFBO(w, h) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { tex, fb };
+}
+
+const vsSrc = document.getElementById('vs').textContent;
+let programs, imgTex, quad;
+let fbos = {};
+
+function initGL() {
+  programs = {
+    crt:     createProgram(vsSrc, document.getElementById('fs-crt').textContent),
+    bright:  createProgram(vsSrc, document.getElementById('fs-bright').textContent),
+    blur:    createProgram(vsSrc, document.getElementById('fs-blur').textContent),
+    combine: createProgram(vsSrc, document.getElementById('fs-combine').textContent),
+  };
+
+  quad = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+}
+
+function uploadImage(img) {
+  state.imgAspect = img.naturalWidth / img.naturalHeight;
+  if (!imgTex) imgTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, imgTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+function ensureFBOs(w, h) {
+  if (fbos.w !== w || fbos.h !== h) {
+    fbos = { w, h,
+      crt:    createFBO(w, h),
+      bright: createFBO(w, h),
+      blurH:  createFBO(w, h),
+      blurV:  createFBO(w, h),
+    };
+  }
+}
+
+function runPass(prog, inputTex, fb, uniforms) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  const pos = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, inputTex);
+  gl.uniform1i(gl.getUniformLocation(prog, 'u_tex'), 0);
+
+  if (uniforms) uniforms(prog);
+  gl.viewport(0, 0, fbos.w, fbos.h);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+function drawFrame() {
+  if (!gl || !imgTex || !programs) return;
+  const W = canvas.width, H = canvas.height;
+  ensureFBOs(W, H);
+
+  // Pass 1: CRT
+  runPass(programs.crt, imgTex, fbos.crt.fb, prog => {
+    gl.uniform2f(gl.getUniformLocation(prog, 'u_res'), W, H);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_distortion'),   state.distortion);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_dotScale'),     state.dotScale);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_dotPitch'),     state.dotPitch);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_falloff'),      state.falloff);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_glowRadius'),   state.glowRadius * W);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_glowIntensity'),state.glowIntensity);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_redX'),  state.redX);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_redY'),  state.redY);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_blueX'), state.blueX);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_blueY'), state.blueY);
+    gl.uniform1i(gl.getUniformLocation(prog, 'u_type'),  state.crtType);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_imgAspect'),    state.imgAspect);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_canvasAspect'), W / H);
+  });
+
+  // Pass 2: Bright
+  runPass(programs.bright, fbos.crt.tex, fbos.bright.fb, prog => {
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_threshold'), state.bloomThresh);
+  });
+
+  // Pass 3: Blur H
+  runPass(programs.blur, fbos.bright.tex, fbos.blurH.fb, prog => {
+    gl.uniform2f(gl.getUniformLocation(prog, 'u_dir'), 1, 0);
+    gl.uniform2f(gl.getUniformLocation(prog, 'u_res'), W, H);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_radius'), state.bloomRadius);
+  });
+
+  // Pass 4: Blur V
+  runPass(programs.blur, fbos.blurH.tex, fbos.blurV.fb, prog => {
+    gl.uniform2f(gl.getUniformLocation(prog, 'u_dir'), 0, 1);
+    gl.uniform2f(gl.getUniformLocation(prog, 'u_res'), W, H);
+    gl.uniform1f(gl.getUniformLocation(prog, 'u_radius'), state.bloomRadius);
+  });
+
+  // Pass 5: Combine to screen
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(programs.combine);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  const pos = gl.getAttribLocation(programs.combine, 'a_pos');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, fbos.crt.tex);
+  gl.uniform1i(gl.getUniformLocation(programs.combine, 'u_base'), 0);
+
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, fbos.blurV.tex);
+  gl.uniform1i(gl.getUniformLocation(programs.combine, 'u_bloom'), 1);
+
+  gl.uniform1f(gl.getUniformLocation(programs.combine, 'u_intensity'), state.bloomIntensity);
+  gl.uniform1i(gl.getUniformLocation(programs.combine, 'u_blend'), state.bloomBlend);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+let rafScheduled = false;
+function scheduleFrame() {
+  if (rafScheduled) return;
+  rafScheduled = true;
+  requestAnimationFrame(() => { rafScheduled = false; drawFrame(); });
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    state.srcImage = img;
+    uploadImage(img);
+    URL.revokeObjectURL(url);
+    uploadOverlay.classList.add('hidden');
+    scheduleFrame();
+  };
+  img.src = url;
+  fileInput.value = '';
+});
+
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); uploadOverlay.classList.add('drag-over'); });
+canvasArea.addEventListener('dragleave', () => uploadOverlay.classList.remove('drag-over'));
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadOverlay.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) {
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => { state.srcImage = img; uploadImage(img); URL.revokeObjectURL(url); uploadOverlay.classList.add('hidden'); scheduleFrame(); };
+    img.src = url;
+  }
+});
+
+// ─── Slider bindings ──────────────────────────────────────────────────────────
+function bindSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+    scheduleFrame();
+  });
+}
+bindSlider('sl-distortion',    'val-distortion',    'distortion',    v => v.toFixed(3));
+bindSlider('sl-dotscale',      'val-dotscale',      'dotScale',      v => v.toFixed(2));
+bindSlider('sl-dotpitch',      'val-dotpitch',      'dotPitch',      v => v.toFixed(1));
+bindSlider('sl-falloff',       'val-falloff',       'falloff',       v => v.toFixed(2));
+bindSlider('sl-glowradius',    'val-glowradius',    'glowRadius',    v => v.toFixed(2));
+bindSlider('sl-glowintensity', 'val-glowintensity', 'glowIntensity', v => v.toFixed(2));
+bindSlider('sl-bloomthresh',   'val-bloomthresh',   'bloomThresh',   v => v.toFixed(2));
+bindSlider('sl-bloomintensity','val-bloomintensity','bloomIntensity',v => v.toFixed(1));
+bindSlider('sl-bloomradius',   'val-bloomradius',   'bloomRadius',   v => v.toFixed(1));
+bindSlider('sl-redx',  'val-redx',  'redX',  v => v.toFixed(2));
+bindSlider('sl-redy',  'val-redy',  'redY',  v => v.toFixed(2));
+bindSlider('sl-bluex', 'val-bluex', 'blueX', v => v.toFixed(2));
+bindSlider('sl-bluey', 'val-bluey', 'blueY', v => v.toFixed(2));
+
+// ─── Section collapse ─────────────────────────────────────────────────────────
+document.querySelectorAll('.sb-section-header').forEach(hdr => {
+  hdr.addEventListener('click', () => {
+    const section = document.getElementById(hdr.dataset.section) || hdr.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    hdr.querySelector('.sb-section-toggle').textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── CRT type toggle ──────────────────────────────────────────────────────────
+document.querySelectorAll('#crt-type .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#crt-type .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.crtType = parseInt(btn.dataset.val);
+    scheduleFrame();
+  });
+});
+
+// ─── Bloom blend toggle ───────────────────────────────────────────────────────
+document.querySelectorAll('#bloom-blend .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#bloom-blend .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.bloomBlend = parseInt(btn.dataset.val);
+    scheduleFrame();
+  });
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', () => {
+  drawFrame();
+  const a = document.createElement('a');
+  a.download = 'crt.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); document.getElementById('btn-export').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); fileInput.click(); }
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+if (gl) initGL();
+lucide.createIcons();
+scheduleFrame();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

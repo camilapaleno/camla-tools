@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recolor — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    /* Gradient stop editor */
+    #gradient-preview {
+      height: 28px;
+      border-radius: 6px;
+      margin: 4px 14px 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .gradient-stop {
+      display: flex; align-items: center; gap: 8px;
+      padding: 3px 14px;
+    }
+    .gradient-stop input[type=range] { flex: 1; }
+    .gradient-stop .swatch {
+      width: 22px; height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.18);
+      overflow: hidden; cursor: pointer; flex-shrink: 0; position: relative;
+    }
+    .gradient-stop .swatch input[type=color] {
+      position: absolute; top: -6px; left: -6px; width: 36px; height: 30px;
+      border: none; padding: 0; cursor: pointer; opacity: 0;
+    }
+    .gradient-stop .stop-pos {
+      font-size: 10px; color: var(--text-lo);
+      font-variant-numeric: tabular-nums; min-width: 26px; text-align: right;
+    }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/image-recolor</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body">
+
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload image</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+      <span class="sb-upload-kbd">cmd + O</span>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+
+    <!-- Preprocessing -->
+    <div class="sb-section" id="sec-preprocess" style="margin-top:8px">
+      <div class="sb-section-header" data-section="sec-preprocess">
+        <span class="sb-section-title">Image Preprocessing</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blur</span>
+          <input type="range" id="sl-blur" min="0" max="10" step="0.5" value="0">
+          <span class="sb-val" id="val-blur">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Grain</span>
+          <input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0.30">
+          <span class="sb-val" id="val-grain">0.30</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Gamma</span>
+          <input type="range" id="sl-gamma" min="0.1" max="2" step="0.1" value="1">
+          <span class="sb-val" id="val-gamma">1</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Black Point</span>
+          <input type="range" id="sl-black" min="0" max="255" step="1" value="0">
+          <span class="sb-val" id="val-black">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">White Point</span>
+          <input type="range" id="sl-white" min="0" max="255" step="1" value="255">
+          <span class="sb-val" id="val-white">255</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gradient section -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="sec-gradient">
+        <span class="sb-section-title">Gradient Map</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body" id="sec-gradient-body">
+        <div id="gradient-preview"></div>
+        <div id="gradient-stops"></div>
+        <div style="padding: 2px 14px 6px;">
+          <button class="sb-btn" id="btn-add-stop" style="width:100%;text-align:center">+ Add Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recolor controls -->
+    <div class="sb-section">
+      <div class="sb-section-body" style="padding:6px 0 4px">
+        <div class="sb-toggle-row">
+          <span class="sb-toggle-lbl">Map</span>
+          <div class="sb-toggle-group" id="color-attr">
+            <button class="sb-toggle-btn active" data-val="brightness">bright</button>
+            <button class="sb-toggle-btn" data-val="hue">hue</button>
+            <button class="sb-toggle-btn" data-val="saturation">sat</button>
+          </div>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Posterize</span>
+          <input type="range" id="sl-posterize" min="2" max="255" step="1" value="255">
+          <span class="sb-val" id="val-posterize">255</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Repetitions</span>
+          <input type="range" id="sl-repeat" min="1" max="10" step="1" value="1">
+          <span class="sb-val" id="val-repeat">1</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Noise Intensity</span>
+          <input type="range" id="sl-noise" min="0" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-noise">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Noise Scale</span>
+          <input type="range" id="sl-nscale" min="0.01" max="1" step="0.01" value="0.1">
+          <span class="sb-val" id="val-nscale">0.10</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Noise Gamma</span>
+          <input type="range" id="sl-ngamma" min="0.1" max="5" step="0.1" value="1">
+          <span class="sb-val" id="val-ngamma">1.0</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sb-body -->
+
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-export">
+      <span>Export PNG</span>
+      <span class="sb-kbd">cmd + S</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <canvas id="fx-canvas"></canvas>
+  <div id="upload-overlay">
+    <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+    <span>Upload an image to get started</span>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = {
+  srcImage:      null,
+  blurAmount:    0,
+  grainAmount:   0.30,
+  gamma:         1,
+  blackPoint:    0,
+  whitePoint:    255,
+  posterize:     255,
+  repeat:        1,
+  noiseIntensity:0,
+  noiseScale:    0.1,
+  noiseGamma:    1,
+  colorAttr:     'brightness',
+  stops: [
+    { position: 0,   color: '#5e0080' },
+    { position: 100, color: '#99c0ff' },
+  ],
+  zoom: 1, panX: 0, panY: 0,
+};
+
+const fxCanvas   = document.getElementById('fx-canvas');
+const fxCtx      = fxCanvas.getContext('2d', { willReadFrequently: true });
+const canvasArea = document.getElementById('canvas-area');
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+function syncSize() {
+  fxCanvas.width  = canvasArea.clientWidth;
+  fxCanvas.height = canvasArea.clientHeight;
+}
+window.addEventListener('resize', () => { syncSize(); scheduleFrame(); });
+syncSize();
+
+// ─── Simple Perlin-like noise (value noise) ───────────────────────────────────
+const noiseTable = new Float32Array(256).map(() => Math.random());
+function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+function lerp(a, b, t) { return a + t * (b - a); }
+function noise2(x, y) {
+  const xi = Math.floor(x) & 255, yi = Math.floor(y) & 255;
+  const xf = x - Math.floor(x), yf = y - Math.floor(y);
+  const u  = fade(xf), v = fade(yf);
+  const aa = noiseTable[(xi + noiseTable[yi & 255]) & 255];
+  const ab = noiseTable[(xi + noiseTable[(yi+1) & 255]) & 255];
+  const ba = noiseTable[((xi+1) + noiseTable[yi & 255]) & 255];
+  const bb = noiseTable[((xi+1) + noiseTable[(yi+1) & 255]) & 255];
+  return lerp(lerp(aa, ba, u), lerp(ab, bb, u), v);
+}
+
+// ─── Gradient sampling ────────────────────────────────────────────────────────
+function hexToRgb(hex) {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+function lerpColor(c1, c2, t) {
+  return c1.map((v, i) => Math.round(v + (c2[i] - v) * t));
+}
+function sampleGradient(t) {
+  const stops = [...state.stops].sort((a,b) => a.position - b.position);
+  if (t <= stops[0].position / 100) return hexToRgb(stops[0].color);
+  if (t >= stops[stops.length-1].position / 100) return hexToRgb(stops[stops.length-1].color);
+  for (let i = 0; i < stops.length - 1; i++) {
+    const lo = stops[i].position / 100;
+    const hi = stops[i+1].position / 100;
+    if (t <= hi) {
+      const span = hi - lo;
+      return lerpColor(hexToRgb(stops[i].color), hexToRgb(stops[i+1].color), (t - lo) / span);
+    }
+  }
+  return [255,255,255];
+}
+
+// ─── HSL helpers ─────────────────────────────────────────────────────────────
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max+min)/2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g-b)/d + (g<b?6:0)) / 6; break;
+      case g: h = ((b-r)/d + 2) / 6; break;
+      case b: h = ((r-g)/d + 4) / 6; break;
+    }
+  }
+  return [h, s, l];
+}
+
+// ─── Preprocessing ────────────────────────────────────────────────────────────
+function preprocessToBuffer(srcImg) {
+  const scale = Math.min(800 / srcImg.width, 800 / srcImg.height);
+  const W = Math.round(srcImg.width * scale);
+  const H = Math.round(srcImg.height * scale);
+  const buf = document.createElement('canvas');
+  buf.width = W; buf.height = H;
+  const ctx = buf.getContext('2d', { willReadFrequently: true });
+  if (state.blurAmount > 0) {
+    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+    const tCtx = tmp.getContext('2d'); tCtx.filter = `blur(${state.blurAmount}px)`;
+    tCtx.drawImage(srcImg, 0, 0, W, H); ctx.drawImage(tmp, 0, 0);
+  } else {
+    ctx.drawImage(srcImg, 0, 0, W, H);
+  }
+  const id = ctx.getImageData(0, 0, W, H);
+  const px = id.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (state.grainAmount > 0) {
+      const n = (0.5 - Math.random()) * state.grainAmount * 255;
+      px[i]=clamp(px[i]+n,0,255); px[i+1]=clamp(px[i+1]+n,0,255); px[i+2]=clamp(px[i+2]+n,0,255);
+    }
+    if (state.gamma !== 1) {
+      px[i]=clamp(255*Math.pow(px[i]/255,state.gamma),0,255);
+      px[i+1]=clamp(255*Math.pow(px[i+1]/255,state.gamma),0,255);
+      px[i+2]=clamp(255*Math.pow(px[i+2]/255,state.gamma),0,255);
+    }
+    if (state.blackPoint !== 0 || state.whitePoint !== 255) {
+      const s = 255 / (state.whitePoint - state.blackPoint);
+      px[i]=clamp((px[i]-state.blackPoint)*s,0,255);
+      px[i+1]=clamp((px[i+1]-state.blackPoint)*s,0,255);
+      px[i+2]=clamp((px[i+2]-state.blackPoint)*s,0,255);
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return buf;
+}
+
+// ─── Recolor ──────────────────────────────────────────────────────────────────
+function applyRecolor(srcBuf) {
+  const W = srcBuf.width, H = srcBuf.height;
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  const id  = srcBuf.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H);
+  const px  = id.data;
+  const outId = ctx.createImageData(W, H);
+  const opx   = outId.data;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (x + y * W) * 4;
+      const r = px[i], g = px[i+1], b = px[i+2], a = px[i+3];
+      const m = a / 255;
+
+      let t;
+      const hsl = rgbToHsl(r, g, b);
+      switch (state.colorAttr) {
+        case 'hue':        t = hsl[0]; break;
+        case 'saturation': t = hsl[1]; break;
+        default:           t = (r+g+b)/765*m + (1-m); break;
+      }
+
+      // Noise
+      if (state.noiseIntensity > 0) {
+        let n = noise2(x * state.noiseScale, y * state.noiseScale);
+        n = Math.pow(n, state.noiseGamma);
+        t = clamp(t + (n - 0.5) * 2 * state.noiseIntensity, 0, 1);
+      }
+
+      // Posterize
+      const s = state.posterize;
+      t = s <= 1 ? 0 : s === 2 ? (t < 0.5 ? 0 : 1)
+        : Math.floor(t * s) / (s - 1);
+
+      // Repeat
+      if (state.repeat > 1) t = (t * state.repeat) % 1;
+
+      const col = sampleGradient(t);
+      opx[i]   = col[0];
+      opx[i+1] = col[1];
+      opx[i+2] = col[2];
+      opx[i+3] = 255;
+    }
+  }
+  ctx.putImageData(outId, 0, 0);
+  return out;
+}
+
+// ─── Draw frame ───────────────────────────────────────────────────────────────
+function drawFrame() {
+  const W = fxCanvas.width, H = fxCanvas.height;
+  fxCtx.fillStyle = '#0a0a0f';
+  fxCtx.fillRect(0, 0, W, H);
+  if (!state.srcImage) return;
+
+  const srcBuf = preprocessToBuffer(state.srcImage);
+  const result = applyRecolor(srcBuf);
+
+  const fitScale = Math.min(W / result.width, H / result.height) * state.zoom;
+  const dW = result.width * fitScale, dH = result.height * fitScale;
+  fxCtx.drawImage(result, (W - dW) / 2 + state.panX, (H - dH) / 2 + state.panY, dW, dH);
+}
+
+let rafScheduled = false;
+function scheduleFrame() {
+  if (rafScheduled) return;
+  rafScheduled = true;
+  requestAnimationFrame(() => { rafScheduled = false; drawFrame(); });
+}
+
+// ─── Gradient editor ──────────────────────────────────────────────────────────
+function updateGradientPreview() {
+  const stops = [...state.stops].sort((a,b) => a.position - b.position);
+  const css = stops.map(s => `${s.color} ${s.position}%`).join(', ');
+  document.getElementById('gradient-preview').style.background = `linear-gradient(to right, ${css})`;
+}
+
+function buildStopUI() {
+  const container = document.getElementById('gradient-stops');
+  container.innerHTML = '';
+  state.stops.forEach((stop, idx) => {
+    const row = document.createElement('div');
+    row.className = 'gradient-stop';
+
+    const swatch = document.createElement('div');
+    swatch.className = 'swatch';
+    swatch.style.background = stop.color;
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = stop.color;
+    colorInput.addEventListener('click', e => e.stopPropagation());
+    colorInput.addEventListener('input', () => {
+      state.stops[idx].color = colorInput.value;
+      swatch.style.background = colorInput.value;
+      updateGradientPreview();
+      scheduleFrame();
+    });
+    swatch.appendChild(colorInput);
+
+    const posSlider = document.createElement('input');
+    posSlider.type = 'range';
+    posSlider.min = 0; posSlider.max = 100; posSlider.step = 1;
+    posSlider.value = stop.position;
+
+    const posLabel = document.createElement('span');
+    posLabel.className = 'stop-pos';
+    posLabel.textContent = stop.position + '%';
+
+    posSlider.addEventListener('input', () => {
+      state.stops[idx].position = parseInt(posSlider.value);
+      posLabel.textContent = posSlider.value + '%';
+      updateGradientPreview();
+      scheduleFrame();
+    });
+
+    if (state.stops.length > 2) {
+      const del = document.createElement('button');
+      del.className = 'sb-btn';
+      del.textContent = '×';
+      del.style.padding = '1px 5px';
+      del.addEventListener('click', () => { state.stops.splice(idx, 1); buildStopUI(); updateGradientPreview(); scheduleFrame(); });
+      row.appendChild(swatch);
+      row.appendChild(posSlider);
+      row.appendChild(posLabel);
+      row.appendChild(del);
+    } else {
+      row.appendChild(swatch);
+      row.appendChild(posSlider);
+      row.appendChild(posLabel);
+    }
+
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('btn-add-stop').addEventListener('click', () => {
+  state.stops.push({ position: 50, color: '#888888' });
+  buildStopUI();
+  updateGradientPreview();
+  scheduleFrame();
+});
+
+buildStopUI();
+updateGradientPreview();
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+const uploadOverlay = document.getElementById('upload-overlay');
+const fileInput     = document.getElementById('file-input');
+
+document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => { state.srcImage = img; URL.revokeObjectURL(url); uploadOverlay.classList.add('hidden'); scheduleFrame(); };
+  img.src = url;
+  fileInput.value = '';
+});
+
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); uploadOverlay.classList.add('drag-over'); });
+canvasArea.addEventListener('dragleave', () => uploadOverlay.classList.remove('drag-over'));
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadOverlay.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) { const url = URL.createObjectURL(f); const img = new Image(); img.onload = () => { state.srcImage = img; URL.revokeObjectURL(url); uploadOverlay.classList.add('hidden'); scheduleFrame(); }; img.src = url; }
+});
+
+// ─── Pan + zoom ───────────────────────────────────────────────────────────────
+let dragging = false, dragX = 0, dragY = 0;
+fxCanvas.addEventListener('mousedown', e => { dragging = true; dragX = e.clientX; dragY = e.clientY; });
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  state.panX += e.clientX - dragX; state.panY += e.clientY - dragY;
+  dragX = e.clientX; dragY = e.clientY; scheduleFrame();
+});
+window.addEventListener('mouseup', () => dragging = false);
+
+// ─── Sliders ──────────────────────────────────────────────────────────────────
+function bindSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+    scheduleFrame();
+  });
+}
+bindSlider('sl-blur',      'val-blur',      'blurAmount',    v => v);
+bindSlider('sl-grain',     'val-grain',     'grainAmount',   v => v.toFixed(2));
+bindSlider('sl-gamma',     'val-gamma',     'gamma',         v => v.toFixed(1));
+bindSlider('sl-black',     'val-black',     'blackPoint',    v => Math.round(v));
+bindSlider('sl-white',     'val-white',     'whitePoint',    v => Math.round(v));
+bindSlider('sl-posterize', 'val-posterize', 'posterize',     v => Math.round(v));
+bindSlider('sl-repeat',    'val-repeat',    'repeat',        v => Math.round(v));
+bindSlider('sl-noise',     'val-noise',     'noiseIntensity',v => v.toFixed(2));
+bindSlider('sl-nscale',    'val-nscale',    'noiseScale',    v => v.toFixed(2));
+bindSlider('sl-ngamma',    'val-ngamma',    'noiseGamma',    v => v.toFixed(1));
+
+// ─── Section collapse ─────────────────────────────────────────────────────────
+document.querySelectorAll('.sb-section-header').forEach(hdr => {
+  hdr.addEventListener('click', () => {
+    const section = document.getElementById(hdr.dataset.section) || hdr.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    hdr.querySelector('.sb-section-toggle').textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── Color attribute toggle ───────────────────────────────────────────────────
+document.querySelectorAll('#color-attr .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#color-attr .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.colorAttr = btn.dataset.val;
+    scheduleFrame();
+  });
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', () => {
+  if (!state.srcImage) return;
+  const srcBuf = preprocessToBuffer(state.srcImage);
+  const result = applyRecolor(srcBuf);
+  const a = document.createElement('a');
+  a.download = 'recolor.png';
+  a.href = result.toDataURL('image/png');
+  a.click();
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); document.getElementById('btn-export').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); fileInput.click(); }
+});
+
+lucide.createIcons();
+scheduleFrame();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

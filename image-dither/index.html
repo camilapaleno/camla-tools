@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dither — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/image-dither</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body">
+
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload image</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+      <span class="sb-upload-kbd">cmd + O</span>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+
+    <!-- Preprocessing -->
+    <div class="sb-section" id="sec-preprocess" style="margin-top:8px">
+      <div class="sb-section-header" data-section="sec-preprocess">
+        <span class="sb-section-title">Image Preprocessing</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blur</span>
+          <input type="range" id="sl-blur" min="0" max="10" step="0.5" value="0">
+          <span class="sb-val" id="val-blur">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Grain</span>
+          <input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-grain">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Gamma</span>
+          <input type="range" id="sl-gamma" min="0.1" max="2" step="0.1" value="1">
+          <span class="sb-val" id="val-gamma">1</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Black Point</span>
+          <input type="range" id="sl-black" min="0" max="255" step="1" value="0">
+          <span class="sb-val" id="val-black">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">White Point</span>
+          <input type="range" id="sl-white" min="0" max="255" step="1" value="255">
+          <span class="sb-val" id="val-white">255</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dither settings -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="sec-dither">
+        <span class="sb-section-title">Dither</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body" id="sec-dither-body">
+        <div class="sb-toggle-row">
+          <span class="sb-toggle-lbl">Pattern</span>
+          <div class="sb-toggle-group" id="dither-pattern">
+            <button class="sb-toggle-btn active" data-val="fs">F-S</button>
+            <button class="sb-toggle-btn" data-val="bayer">Bayer</button>
+            <button class="sb-toggle-btn" data-val="random">Random</button>
+            <button class="sb-toggle-btn" data-val="spot">Spot</button>
+          </div>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Pixel Size</span>
+          <input type="range" id="sl-pixelsize" min="1" max="20" step="1" value="4">
+          <span class="sb-val" id="val-pixelsize">4</span>
+        </div>
+        <div class="sb-check" id="chk-color">
+          <span class="sb-check-indicator">[ ]</span>
+          <span class="sb-check-lbl">Color Mode</span>
+        </div>
+        <div id="color-count-row">
+          <div class="sb-ctrl">
+            <span class="sb-ctrl-lbl">Color Count</span>
+            <input type="range" id="sl-colorcount" min="2" max="32" step="1" value="8">
+            <span class="sb-val" id="val-colorcount">8</span>
+          </div>
+        </div>
+        <div id="threshold-row">
+          <div class="sb-ctrl">
+            <span class="sb-ctrl-lbl">Threshold</span>
+            <input type="range" id="sl-threshold" min="0" max="255" step="1" value="128">
+            <span class="sb-val" id="val-threshold">128</span>
+          </div>
+        </div>
+        <div id="spotsize-row">
+          <div class="sb-ctrl">
+            <span class="sb-ctrl-lbl">Spot Size</span>
+            <input type="range" id="sl-spotsize" min="2" max="16" step="1" value="5">
+            <span class="sb-val" id="val-spotsize">5</span>
+          </div>
+        </div>
+        <div class="sb-check" id="chk-inkonly">
+          <span class="sb-check-indicator">[ ]</span>
+          <span class="sb-check-lbl">Ink only (transparent bg)</span>
+        </div>
+        <div class="sb-check" id="chk-inkinvert">
+          <span class="sb-check-indicator">[ ]</span>
+          <span class="sb-check-lbl">Invert (dot the lights)</span>
+        </div>
+        <div id="ink-color-row" class="sb-color-row">
+          <span class="sb-color-lbl">Dot Color</span>
+          <input type="color" id="ink-color" value="#000000">
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sb-body -->
+
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-export">
+      <span>Export PNG</span>
+      <span class="sb-kbd">cmd + S</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <canvas id="fx-canvas"></canvas>
+  <div id="upload-overlay">
+    <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+    <span>Upload an image to get started</span>
+  </div>
+</div>
+
+<script>
+const state = {
+  srcImage:   null,
+  blurAmount: 0,
+  grainAmount:0,
+  gamma:      1,
+  blackPoint: 0,
+  whitePoint: 255,
+  pattern:    'fs',
+  pixelSize:  4,
+  colorMode:  false,
+  colorCount: 8,
+  threshold:  128,
+  spotSize:   5,
+  inkOnly:    false,
+  inkInvert:  false,
+  inkColor:   '#000000',
+  zoom: 1, panX: 0, panY: 0,
+};
+
+const fxCanvas   = document.getElementById('fx-canvas');
+const fxCtx      = fxCanvas.getContext('2d', { willReadFrequently: true });
+const canvasArea = document.getElementById('canvas-area');
+
+function syncSize() {
+  fxCanvas.width  = canvasArea.clientWidth;
+  fxCanvas.height = canvasArea.clientHeight;
+}
+window.addEventListener('resize', () => { syncSize(); scheduleFrame(); });
+syncSize();
+
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+// ─── Preprocessing ────────────────────────────────────────────────────────────
+function preprocessToBuffer(srcImg) {
+  const size = 800;
+  const scale = Math.min(size / srcImg.width, size / srcImg.height);
+  const W = Math.round(srcImg.width * scale);
+  const H = Math.round(srcImg.height * scale);
+  const buf = document.createElement('canvas');
+  buf.width = W; buf.height = H;
+  const ctx = buf.getContext('2d', { willReadFrequently: true });
+
+  if (state.blurAmount > 0) {
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    const tCtx = tmp.getContext('2d');
+    tCtx.filter = `blur(${state.blurAmount}px)`;
+    tCtx.drawImage(srcImg, 0, 0, W, H);
+    ctx.drawImage(tmp, 0, 0);
+  } else {
+    ctx.drawImage(srcImg, 0, 0, W, H);
+  }
+
+  const id = ctx.getImageData(0, 0, W, H);
+  const px = id.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (state.grainAmount > 0) {
+      const n = (0.5 - Math.random()) * state.grainAmount * 255;
+      px[i]   = clamp(px[i]   + n, 0, 255);
+      px[i+1] = clamp(px[i+1] + n, 0, 255);
+      px[i+2] = clamp(px[i+2] + n, 0, 255);
+    }
+    if (state.gamma !== 1) {
+      px[i]   = clamp(255 * Math.pow(px[i]   / 255, state.gamma), 0, 255);
+      px[i+1] = clamp(255 * Math.pow(px[i+1] / 255, state.gamma), 0, 255);
+      px[i+2] = clamp(255 * Math.pow(px[i+2] / 255, state.gamma), 0, 255);
+    }
+    if (state.blackPoint !== 0 || state.whitePoint !== 255) {
+      const s = 255 / (state.whitePoint - state.blackPoint);
+      px[i]   = clamp((px[i]   - state.blackPoint) * s, 0, 255);
+      px[i+1] = clamp((px[i+1] - state.blackPoint) * s, 0, 255);
+      px[i+2] = clamp((px[i+2] - state.blackPoint) * s, 0, 255);
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return buf;
+}
+
+// ─── Palette builder ──────────────────────────────────────────────────────────
+function buildPalette(count) {
+  const pal = [{r:0,g:0,b:0},{r:255,g:255,b:255}];
+  const steps = Math.max(2, Math.ceil(Math.cbrt(count - 2)));
+  const s = 255 / (steps - 1);
+  for (let r = 0; r < steps && pal.length < count; r++)
+    for (let g = 0; g < steps && pal.length < count; g++)
+      for (let b = 0; b < steps && pal.length < count; b++)
+        pal.push({ r: Math.round(r*s), g: Math.round(g*s), b: Math.round(b*s) });
+  return pal;
+}
+
+function nearestColor(r, g, b, palette) {
+  let best = palette[0], bestD = Infinity;
+  for (const c of palette) {
+    const d = (0.299*(r-c.r))**2 + (0.587*(g-c.g))**2 + (0.114*(b-c.b))**2;
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best;
+}
+
+// ─── Dithering ────────────────────────────────────────────────────────────────
+const BAYER4 = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+
+// Spot function: threshold that rises toward the centre of a cs×cs grid cell.
+// Returns 1 at the cell centre → 0 at the corners. A pixel is "ink" when its
+// brightness falls below this value, so dots grow from the centre outward.
+function spotValue(col, row, cs) {
+  const half = (cs - 1) / 2;
+  const cx = (col % cs) - half;
+  const cy = (row % cs) - half;
+  const norm = Math.SQRT2 * half || 1;
+  return 1 - Math.min(1, Math.sqrt(cx * cx + cy * cy) / norm);
+}
+
+function ditherBuffer(srcBuf) {
+  const ps   = state.pixelSize;
+  const W    = srcBuf.width, H = srcBuf.height;
+  const cols = Math.floor(W / ps);
+  const rows = Math.floor(H / ps);
+  const srcCtx = srcBuf.getContext('2d', { willReadFrequently: true });
+
+  // Read entire image once for performance
+  const fullId  = srcCtx.getImageData(0, 0, W, H);
+  const fullPx  = fullId.data;
+
+  // Helper: average a block of pixels from the full pixel array
+  function avgBlock(col, row) {
+    let sr = 0, sg = 0, sb = 0, cnt = 0;
+    const x0 = col * ps, y0 = row * ps;
+    const x1 = Math.min(x0 + ps, W), y1 = Math.min(y0 + ps, H);
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const o = (y * W + x) * 4;
+        sr += fullPx[o]; sg += fullPx[o+1]; sb += fullPx[o+2]; cnt++;
+      }
+    }
+    return cnt ? { r: sr/cnt, g: sg/cnt, b: sb/cnt } : { r: 0, g: 0, b: 0 };
+  }
+
+  if (state.colorMode) {
+    const palette = buildPalette(state.colorCount);
+    // Build grid of {r,g,b}
+    const grid = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        grid.push(avgBlock(col, row));
+      }
+    }
+
+    if (state.pattern === 'fs') {
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const c = grid[i];
+          const nc = nearestColor(clamp(c.r,0,255), clamp(c.g,0,255), clamp(c.b,0,255), palette);
+          const er = c.r - nc.r, eg = c.g - nc.g, eb = c.b - nc.b;
+          grid[i] = { r: nc.r, g: nc.g, b: nc.b };
+          function addErr(ci, fr) {
+            if (ci >= 0 && ci < grid.length) {
+              grid[ci].r += er * fr;
+              grid[ci].g += eg * fr;
+              grid[ci].b += eb * fr;
+            }
+          }
+          if (col+1 < cols) addErr(i+1, 7/16);
+          if (col-1 >= 0 && row+1 < rows) addErr(i+cols-1, 3/16);
+          if (row+1 < rows) addErr(i+cols, 5/16);
+          if (col+1 < cols && row+1 < rows) addErr(i+cols+1, 1/16);
+        }
+      }
+    } else if (state.pattern === 'bayer') {
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const c = grid[i];
+          const t = (BAYER4[row%4][col%4] / 16);
+          const nc = nearestColor(
+            clamp(c.r + (t - 0.5) * 64, 0, 255),
+            clamp(c.g + (t - 0.5) * 64, 0, 255),
+            clamp(c.b + (t - 0.5) * 64, 0, 255), palette);
+          grid[i] = nc;
+        }
+    } else if (state.pattern === 'spot') {
+      const cs = Math.max(2, state.spotSize);
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const c = grid[i];
+          const t = spotValue(col, row, cs); // 1 centre → 0 corner
+          const nc = nearestColor(
+            clamp(c.r + (0.5 - t) * 64, 0, 255),
+            clamp(c.g + (0.5 - t) * 64, 0, 255),
+            clamp(c.b + (0.5 - t) * 64, 0, 255), palette);
+          grid[i] = nc;
+        }
+    } else {
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const c = grid[i];
+          const t = Math.random();
+          const nc = nearestColor(
+            clamp(c.r + (t - 0.5) * 64, 0, 255),
+            clamp(c.g + (t - 0.5) * 64, 0, 255),
+            clamp(c.b + (t - 0.5) * 64, 0, 255), palette);
+          grid[i] = nc;
+        }
+    }
+
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const outCtx = out.getContext('2d');
+    for (let row = 0; row < rows; row++)
+      for (let col = 0; col < cols; col++) {
+        const c = grid[col + row * cols];
+        outCtx.fillStyle = `rgb(${Math.round(c.r)},${Math.round(c.g)},${Math.round(c.b)})`;
+        outCtx.fillRect(col * ps, row * ps, ps, ps);
+      }
+    return out;
+
+  } else {
+    // Mono
+    const grid = [];
+    for (let row = 0; row < rows; row++)
+      for (let col = 0; col < cols; col++) {
+        const { r, g, b } = avgBlock(col, row);
+        grid.push((r + g + b) / 3);
+      }
+
+    if (state.pattern === 'fs') {
+      const q = 255;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const old = clamp(grid[i], 0, 255);
+          const nu = old > 127 ? 255 : 0;
+          grid[i] = nu;
+          const err = old - nu;
+          if (col+1 < cols) grid[i+1] += 7*err/16;
+          if (col-1>=0 && row+1<rows) grid[i+cols-1] += 3*err/16;
+          if (row+1 < rows) grid[i+cols] += 5*err/16;
+          if (col+1<cols && row+1<rows) grid[i+cols+1] += 1*err/16;
+        }
+      }
+    } else if (state.pattern === 'bayer') {
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const t = (state.threshold / 128) * (BAYER4[row%4][col%4] / 16 * 255);
+          grid[i] = grid[i] > t ? 255 : 0;
+        }
+    } else if (state.pattern === 'spot') {
+      const cs = Math.max(2, state.spotSize);
+      const gain = state.threshold / 128;
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const i = col + row * cols;
+          const t = clamp(spotValue(col, row, cs) * 255 * gain, 0, 255);
+          grid[i] = grid[i] < t ? 0 : 255; // dark if brightness is below the spot threshold
+        }
+    } else {
+      for (let i = 0; i < grid.length; i++)
+        grid[i] = grid[i] > Math.random() * 255 ? 255 : 0;
+    }
+
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const outCtx = out.getContext('2d');
+    if (state.inkOnly) {
+      // Single-colour dots on a transparent background — draw only the "ink" cells.
+      outCtx.fillStyle = state.inkColor;
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const v = Math.round(clamp(grid[col + row * cols], 0, 255));
+          const ink = state.inkInvert ? v >= 128 : v < 128;
+          if (ink) outCtx.fillRect(col * ps, row * ps, ps, ps);
+        }
+    } else {
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < cols; col++) {
+          const v = Math.round(clamp(grid[col + row * cols], 0, 255));
+          outCtx.fillStyle = `rgb(${v},${v},${v})`;
+          outCtx.fillRect(col * ps, row * ps, ps, ps);
+        }
+    }
+    return out;
+  }
+}
+
+// ─── Draw frame ───────────────────────────────────────────────────────────────
+function drawChecker(x, y, w, h) {
+  const s = 10;
+  fxCtx.save();
+  fxCtx.beginPath(); fxCtx.rect(x, y, w, h); fxCtx.clip();
+  const cols = Math.ceil(w / s), rows = Math.ceil(h / s);
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      fxCtx.fillStyle = ((r + c) % 2) ? '#1c1c24' : '#26262f';
+      fxCtx.fillRect(x + c * s, y + r * s, s, s);
+    }
+  fxCtx.restore();
+}
+
+function drawFrame() {
+  const W = fxCanvas.width, H = fxCanvas.height;
+  fxCtx.fillStyle = '#0a0a0f';
+  fxCtx.fillRect(0, 0, W, H);
+  if (!state.srcImage) return;
+
+  const srcBuf = preprocessToBuffer(state.srcImage);
+  const result = ditherBuffer(srcBuf);
+
+  const fitScale = Math.min(W / result.width, H / result.height) * state.zoom;
+  const dW = result.width * fitScale;
+  const dH = result.height * fitScale;
+  const dx = (W - dW) / 2 + state.panX;
+  const dy = (H - dH) / 2 + state.panY;
+  if (state.inkOnly && !state.colorMode) drawChecker(dx, dy, dW, dH);
+  fxCtx.drawImage(result, dx, dy, dW, dH);
+}
+
+let rafScheduled = false;
+function scheduleFrame() {
+  if (rafScheduled) return;
+  rafScheduled = true;
+  requestAnimationFrame(() => { rafScheduled = false; drawFrame(); });
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+const uploadOverlay = document.getElementById('upload-overlay');
+const fileInput     = document.getElementById('file-input');
+
+document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => { state.srcImage = img; URL.revokeObjectURL(url); uploadOverlay.classList.add('hidden'); scheduleFrame(); };
+  img.src = url;
+  fileInput.value = '';
+});
+
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); uploadOverlay.classList.add('drag-over'); });
+canvasArea.addEventListener('dragleave', () => uploadOverlay.classList.remove('drag-over'));
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadOverlay.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) { fileInput.dispatchEvent(Object.assign(new Event('change'), { target: { files: [f] } })); }
+});
+
+// ─── Pan + zoom ───────────────────────────────────────────────────────────────
+let dragging = false, dragX = 0, dragY = 0;
+fxCanvas.addEventListener('mousedown', e => { dragging = true; dragX = e.clientX; dragY = e.clientY; });
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  state.panX += e.clientX - dragX; state.panY += e.clientY - dragY;
+  dragX = e.clientX; dragY = e.clientY;
+  scheduleFrame();
+});
+window.addEventListener('mouseup', () => dragging = false);
+fxCanvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  state.zoom = Math.max(0.1, Math.min(10, state.zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+  scheduleFrame();
+}, { passive: false });
+
+// ─── Slider bindings ──────────────────────────────────────────────────────────
+function bindSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+    scheduleFrame();
+  });
+}
+bindSlider('sl-blur',       'val-blur',       'blurAmount',  v => v);
+bindSlider('sl-grain',      'val-grain',      'grainAmount', v => v.toFixed(2));
+bindSlider('sl-gamma',      'val-gamma',      'gamma',       v => v.toFixed(1));
+bindSlider('sl-black',      'val-black',      'blackPoint',  v => Math.round(v));
+bindSlider('sl-white',      'val-white',      'whitePoint',  v => Math.round(v));
+bindSlider('sl-pixelsize',  'val-pixelsize',  'pixelSize',   v => Math.round(v));
+bindSlider('sl-colorcount', 'val-colorcount', 'colorCount',  v => Math.round(v));
+bindSlider('sl-threshold',  'val-threshold',  'threshold',   v => Math.round(v));
+bindSlider('sl-spotsize',   'val-spotsize',   'spotSize',    v => Math.round(v));
+
+// ─── Section collapse ─────────────────────────────────────────────────────────
+document.querySelectorAll('.sb-section-header').forEach(hdr => {
+  hdr.addEventListener('click', () => {
+    const section = document.getElementById(hdr.dataset.section) || hdr.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    hdr.querySelector('.sb-section-toggle').textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── Pattern toggle ───────────────────────────────────────────────────────────
+const spotSizeRow = document.getElementById('spotsize-row');
+function updatePatternUI() {
+  spotSizeRow.style.display = state.pattern === 'spot' ? '' : 'none';
+}
+updatePatternUI();
+
+document.querySelectorAll('#dither-pattern .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#dither-pattern .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.pattern = btn.dataset.val;
+    updatePatternUI();
+    scheduleFrame();
+  });
+});
+
+// ─── Color mode toggle ────────────────────────────────────────────────────────
+const chkColor = document.getElementById('chk-color');
+const colorCountRow = document.getElementById('color-count-row');
+const thresholdRow  = document.getElementById('threshold-row');
+const chkInkOnly    = document.getElementById('chk-inkonly');
+const chkInkInvert  = document.getElementById('chk-inkinvert');
+const inkColorRow   = document.getElementById('ink-color-row');
+
+function updateColorModeUI() {
+  chkColor.classList.toggle('checked', state.colorMode);
+  chkColor.querySelector('.sb-check-indicator').textContent = state.colorMode ? '[*]' : '[ ]';
+  colorCountRow.style.display = state.colorMode ? '' : 'none';
+  thresholdRow.style.display  = state.colorMode ? 'none' : '';
+  // Ink-only controls are mono-only
+  chkInkOnly.style.display   = state.colorMode ? 'none' : '';
+  chkInkInvert.style.display = (!state.colorMode && state.inkOnly) ? '' : 'none';
+  inkColorRow.style.display  = (!state.colorMode && state.inkOnly) ? '' : 'none';
+}
+updateColorModeUI();
+
+chkColor.addEventListener('click', () => {
+  state.colorMode = !state.colorMode;
+  updateColorModeUI();
+  scheduleFrame();
+});
+
+function bindCheck(el, key) {
+  el.addEventListener('click', () => {
+    state[key] = !state[key];
+    el.classList.toggle('checked', state[key]);
+    el.querySelector('.sb-check-indicator').textContent = state[key] ? '[*]' : '[ ]';
+    updateColorModeUI();
+    scheduleFrame();
+  });
+}
+bindCheck(chkInkOnly, 'inkOnly');
+bindCheck(chkInkInvert, 'inkInvert');
+
+document.getElementById('ink-color').addEventListener('input', e => {
+  state.inkColor = e.target.value;
+  scheduleFrame();
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', () => {
+  if (!state.srcImage) return;
+  const srcBuf = preprocessToBuffer(state.srcImage);
+  const result = ditherBuffer(srcBuf);
+  const a = document.createElement('a');
+  a.download = 'dither.png';
+  a.href = result.toDataURL('image/png');
+  a.click();
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); document.getElementById('btn-export').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); fileInput.click(); }
+});
+
+lucide.createIcons();
+scheduleFrame();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

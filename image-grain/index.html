@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grain — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    #img-info {
+      font-size: 10px; color: var(--sb-text-lo);
+      padding: 2px 14px 6px; font-variant-numeric: tabular-nums;
+      line-height: 1.5; word-break: break-all;
+    }
+    .sb-note {
+      font-size: 10px; color: var(--sb-text-lo);
+      padding: 2px 14px 8px; line-height: 1.5;
+    }
+    .sb-toggle-row.stacked { flex-wrap: wrap; }
+    .sb-toggle-row.stacked .sb-toggle-group { flex-wrap: wrap; }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/image-grain</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body">
+
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload image</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+      <span class="sb-upload-kbd">cmd + O</span>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+    <div id="img-info">No image loaded</div>
+
+    <!-- Grain -->
+    <div class="sb-section" id="sec-grain" style="margin-top:8px">
+      <div class="sb-section-header" data-section="sec-grain">
+        <span class="sb-section-title">Grain</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+
+        <div class="sb-toggle-row stacked">
+          <span class="sb-toggle-lbl">Type</span>
+          <div class="sb-toggle-group" id="tg-type">
+            <button class="sb-toggle-btn active" data-val="uniform">uniform</button>
+            <button class="sb-toggle-btn" data-val="gaussian">gaussian</button>
+            <button class="sb-toggle-btn" data-val="perlin">perlin</button>
+            <button class="sb-toggle-btn" data-val="film">film</button>
+          </div>
+        </div>
+
+        <div class="sb-check" id="chk-colored">
+          <span class="sb-check-indicator">[ ]</span>
+          <span class="sb-check-lbl">Colored grain (RGB)</span>
+        </div>
+
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Amount</span>
+          <input type="range" id="sl-amount" min="0" max="1" step="0.01" value="0.35">
+          <span class="sb-val" id="val-amount">0.35</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Grain Size</span>
+          <input type="range" id="sl-size" min="0.25" max="2" step="0.05" value="1">
+          <span class="sb-val" id="val-size">1.00</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Softness</span>
+          <input type="range" id="sl-soft" min="0.3" max="3" step="0.1" value="1">
+          <span class="sb-val" id="val-soft">1.0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Tonal Bias</span>
+          <input type="range" id="sl-bias" min="-100" max="100" step="1" value="0">
+          <span class="sb-val" id="val-bias">0</span>
+        </div>
+        <div class="sb-note">Bias &lt; 0 pushes grain into shadows, &gt; 0 into highlights.</div>
+
+        <div class="sb-toggle-row stacked">
+          <span class="sb-toggle-lbl">Blend</span>
+          <div class="sb-toggle-group" id="tg-blend">
+            <button class="sb-toggle-btn active" data-val="add">add</button>
+            <button class="sb-toggle-btn" data-val="overlay">overlay</button>
+            <button class="sb-toggle-btn" data-val="soft">soft</button>
+            <button class="sb-toggle-btn" data-val="scale">scale</button>
+          </div>
+        </div>
+
+        <div style="padding: 4px 14px 8px;">
+          <button class="sb-btn" id="btn-regen" style="width:100%;text-align:center">↻ Regenerate grain</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="sb-section" id="sec-export">
+      <div class="sb-section-header" data-section="sec-export">
+        <span class="sb-section-title">Export</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-toggle-row stacked">
+          <span class="sb-toggle-lbl">Format</span>
+          <div class="sb-toggle-group" id="tg-format">
+            <button class="sb-toggle-btn active" data-val="match">match</button>
+            <button class="sb-toggle-btn" data-val="png">png</button>
+            <button class="sb-toggle-btn" data-val="jpg">jpg</button>
+          </div>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">JPG Quality</span>
+          <input type="range" id="sl-quality" min="0.5" max="1" step="0.01" value="0.95">
+          <span class="sb-val" id="val-quality">0.95</span>
+        </div>
+        <div class="sb-check checked" id="chk-protect">
+          <span class="sb-check-indicator">[*]</span>
+          <span class="sb-check-lbl">Keep transparency</span>
+        </div>
+        <div class="sb-note">Exports at the original pixel size. PNG keeps the alpha channel; JPG is flattened onto white.</div>
+      </div>
+    </div>
+
+  </div><!-- sb-body -->
+
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-export">
+      <span id="export-lbl">Export</span>
+      <span class="sb-kbd">cmd + S</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <canvas id="fx-canvas"></canvas>
+  <div id="upload-overlay">
+    <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+    <span>Upload an image to get started</span>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = {
+  img:        null,
+  srcName:    null,
+  srcType:    null,
+  type:       'uniform',
+  colored:    false,
+  amount:     0.35,
+  size:       1,
+  softness:   1,
+  bias:       0,
+  blend:      'add',
+  format:     'match',
+  quality:    0.95,
+  protect:    true,
+  seed:       (Math.random() * 1e9) | 0,
+  work:       null,   // cached processed preview canvas
+  zoom: 1, panX: 0, panY: 0,
+};
+
+const PREVIEW_CAP = 4096; // hard ceiling on preview processing resolution
+
+const fxCanvas   = document.getElementById('fx-canvas');
+const fxCtx      = fxCanvas.getContext('2d', { willReadFrequently: true });
+const canvasArea = document.getElementById('canvas-area');
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+function syncSize() {
+  fxCanvas.width  = canvasArea.clientWidth;
+  fxCanvas.height = canvasArea.clientHeight;
+}
+window.addEventListener('resize', () => { syncSize(); scheduleRender(); });
+syncSize();
+
+// Longer edge (px) the source image currently occupies on screen — the preview is
+// processed at this resolution so grain maps ~1:1 to display pixels (WYSIWYG).
+function previewLongEdge() {
+  if (!state.img) return PREVIEW_CAP;
+  const iw = state.img.naturalWidth, ih = state.img.naturalHeight;
+  const fit = Math.min(fxCanvas.width / iw, fxCanvas.height / ih) * state.zoom;
+  const dispLong = Math.max(iw, ih) * fit;
+  return clamp(Math.ceil(dispLong), 64, Math.min(Math.max(iw, ih), PREVIEW_CAP));
+}
+
+// ─── Seeded RNG (mulberry32) ─────────────────────────────────────────────────
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makeGauss(rng) {
+  let spare = null;
+  return function () {
+    if (spare !== null) { const s = spare; spare = null; return s; }
+    let u, v, s;
+    do { u = rng() * 2 - 1; v = rng() * 2 - 1; s = u * u + v * v; } while (s >= 1 || s === 0);
+    const m = Math.sqrt(-2 * Math.log(s) / s);
+    spare = v * m;
+    return u * m;
+  };
+}
+
+// ─── Value / Perlin noise ────────────────────────────────────────────────────
+function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+function lerp(a, b, t) { return a + t * (b - a); }
+function makePerlin(seed) {
+  const perm = new Uint8Array(512);
+  const t = Array.from({ length: 256 }, (_, i) => i);
+  const rng = mulberry32(seed);
+  for (let i = 255; i > 0; i--) { const j = (rng() * (i + 1)) | 0; const s = t[i]; t[i] = t[j]; t[j] = s; }
+  for (let i = 0; i < 512; i++) perm[i] = t[i & 255];
+  const grad = (h, x, y) => ((h & 1) ? x : -x) + ((h & 2) ? y : -y);
+  return (x, y) => {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+    const xf = x - Math.floor(x), yf = y - Math.floor(y);
+    const u = fade(xf), v = fade(yf);
+    const aa = perm[perm[X] + Y],     ab = perm[perm[X] + Y + 1];
+    const ba = perm[perm[X + 1] + Y], bb = perm[perm[X + 1] + Y + 1];
+    const x1 = lerp(grad(aa, xf, yf),     grad(ba, xf - 1, yf),     u);
+    const x2 = lerp(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u);
+    return lerp(x1, x2, v);
+  };
+}
+function fbm(pn, x, y, cell) {
+  let freq = 1 / (cell * 3), amp = 1, sum = 0, norm = 0;
+  for (let o = 0; o < 3; o++) { sum += pn(x * freq, y * freq) * amp; norm += amp; freq *= 2; amp *= 0.5; }
+  return sum / norm;
+}
+
+// ─── Low-res noise field with bilinear upsample (for grain size) ─────────────
+function buildField(W, H, cell, rng, gaussian) {
+  const fw = Math.max(1, Math.ceil(W / cell)) + 2;
+  const fh = Math.max(1, Math.ceil(H / cell)) + 2;
+  const f = new Float32Array(fw * fh);
+  if (gaussian) {
+    const g = makeGauss(rng);
+    for (let i = 0; i < f.length; i++) f[i] = clamp(g() * 0.34, -1, 1);
+  } else {
+    for (let i = 0; i < f.length; i++) f[i] = rng() * 2 - 1;
+  }
+  return { f, fw, fh, cell };
+}
+function sampleField(fd, x, y) {
+  const gx = x / fd.cell, gy = y / fd.cell;
+  const x0 = Math.floor(gx), y0 = Math.floor(gy);
+  const tx = gx - x0, ty = gy - y0;
+  const i00 = y0 * fd.fw + x0;
+  const a = fd.f[i00],          b = fd.f[i00 + 1];
+  const c = fd.f[i00 + fd.fw],  d = fd.f[i00 + fd.fw + 1];
+  return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
+}
+
+// ─── Noise shaping + blend ──────────────────────────────────────────────────
+function shape(n, g) {
+  n = n < -1 ? -1 : n > 1 ? 1 : n;
+  return Math.sign(n) * Math.pow(Math.abs(n), g);
+}
+function blendPx(mode, c, n, amt) {
+  let out;
+  if (mode === 'add') {
+    out = c + n * amt * 255;
+  } else if (mode === 'scale') {
+    out = c * (1 + n * amt);
+  } else {
+    const tc = c / 255;
+    let s = 0.5 + n * amt * 0.5;
+    s = s < 0 ? 0 : s > 1 ? 1 : s;
+    if (mode === 'overlay') {
+      out = 255 * (tc < 0.5 ? 2 * tc * s : 1 - 2 * (1 - tc) * (1 - s));
+    } else { // soft light (W3C)
+      const D = tc <= 0.25 ? ((16 * tc - 12) * tc + 4) * tc : Math.sqrt(tc);
+      out = 255 * (s <= 0.5 ? tc - (1 - 2 * s) * tc * (1 - tc) : tc + (2 * s - 1) * (D - tc));
+    }
+  }
+  return out < 0 ? 0 : out > 255 ? 255 : (out + 0.5) | 0;
+}
+
+// ─── Core: apply grain to a canvas at the given max dimension ────────────────
+// maxDim = target longer edge of the RETURNED canvas (Infinity = native for export).
+// For size < 1 the grain is generated on a supersampled buffer and then resolved
+// down to that target, so it can go finer than one output pixel.
+function process(maxDim) {
+  const img = state.img;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const longEdge = Math.max(iw, ih);
+
+  const outScale = Math.min(1, maxDim / longEdge);        // base (returned) resolution
+  const ss       = state.size < 1 ? clamp(1 / Math.max(state.size, 0.25), 1, 4) : 1;
+  const hardCap  = (maxDim === Infinity) ? 8192 : PREVIEW_CAP;
+  let procScale  = Math.min(outScale * ss, hardCap / longEdge, 3);
+  procScale      = Math.max(procScale, outScale);
+  const ssEff    = procScale / outScale;                  // effective supersample >= 1
+
+  const W = Math.max(1, Math.round(iw * procScale));
+  const H = Math.max(1, Math.round(ih * procScale));
+
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(img, 0, 0, W, H);
+
+  if (state.amount <= 0) return resolveOut(cv, iw, ih, outScale, ssEff);
+
+  const id = ctx.getImageData(0, 0, W, H);
+  const px = id.data;
+
+  // size 1 = neutral; >1 clumps grain coarser; <1 shrinks the cell (supersampling lets
+  // it go sub-output-pixel without aliasing)
+  const cell    = Math.max(1, state.size * procScale);
+  const pcell   = Math.max(0.5, state.size * procScale);
+  const ssComp  = Math.pow(ssEff, 0.7);   // restore contrast lost to the downscale
+  const colored = state.colored;
+  const gaussianField = (state.type === 'gaussian' || state.type === 'film');
+  const isPerlin = state.type === 'perlin';
+  const isFilm   = state.type === 'film';
+  const g        = state.softness;
+  const bias     = state.bias / 100;
+  const blend    = state.blend;
+  const protect  = state.protect;
+  const amount   = state.amount;
+
+  let fR, fG, fB, perlin;
+  if (isPerlin) {
+    perlin = makePerlin(state.seed);
+  } else {
+    fR = buildField(W, H, cell, mulberry32(state.seed), gaussianField);
+    if (colored) {
+      fG = buildField(W, H, cell, mulberry32(state.seed ^ 0x9e3779b9), gaussianField);
+      fB = buildField(W, H, cell, mulberry32(state.seed ^ 0x85ebca6b), gaussianField);
+    }
+  }
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const al = px[i + 3];
+      if (protect && al === 0) continue;
+
+      const r = px[i], gr = px[i + 1], b = px[i + 2];
+      const L = (0.299 * r + 0.587 * gr + 0.114 * b) / 255;
+
+      // per-pixel weight from tonal bias + film midtone curve + alpha
+      let w = 1;
+      if (isFilm) { let m = 1 - Math.abs(2 * L - 1); w *= Math.pow(m, 0.75); }
+      if (bias > 0)      w *= (1 - bias) + bias * L;
+      else if (bias < 0) w *= (1 + bias) + (-bias) * (1 - L);
+      if (protect && al < 255) w *= al / 255;
+
+      let vR, vG, vB;
+      if (isPerlin) {
+        vR = fbm(perlin, x, y, pcell);
+        if (colored) {
+          vG = fbm(perlin, x + 137.2, y + 91.7, pcell);
+          vB = fbm(perlin, x - 54.9, y + 233.1, pcell);
+        }
+      } else {
+        vR = sampleField(fR, x, y);
+        if (colored) { vG = sampleField(fG, x, y); vB = sampleField(fB, x, y); }
+      }
+      const nR = shape(vR, g);
+      const nG = colored ? shape(vG, g) : nR;
+      const nB = colored ? shape(vB, g) : nR;
+
+      const amt = amount * w * ssComp;
+      px[i]     = blendPx(blend, r,  nR, amt);
+      px[i + 1] = blendPx(blend, gr, nG, amt);
+      px[i + 2] = blendPx(blend, b,  nB, amt);
+      // px[i + 3] (alpha) left untouched
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return resolveOut(cv, iw, ih, outScale, ssEff);
+}
+
+// Downscale the supersampled grain buffer to the target output resolution.
+function resolveOut(cv, iw, ih, outScale, ssEff) {
+  if (ssEff <= 1.001) return cv;
+  const outW = Math.max(1, Math.round(iw * outScale));
+  const outH = Math.max(1, Math.round(ih * outScale));
+  const o = document.createElement('canvas');
+  o.width = outW; o.height = outH;
+  const octx = o.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.imageSmoothingQuality = 'high';
+  octx.drawImage(cv, 0, 0, outW, outH);
+  return o;
+}
+
+// ─── Render pipeline ────────────────────────────────────────────────────────
+function drawChecker(x, y, w, h) {
+  const s = 10;
+  fxCtx.save();
+  fxCtx.beginPath();
+  fxCtx.rect(x, y, w, h);
+  fxCtx.clip();
+  const cols = Math.ceil(w / s), rows = Math.ceil(h / s);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      fxCtx.fillStyle = ((r + c) % 2) ? '#1c1c24' : '#26262f';
+      fxCtx.fillRect(x + c * s, y + r * s, s, s);
+    }
+  }
+  fxCtx.restore();
+}
+
+function paint() {
+  const W = fxCanvas.width, H = fxCanvas.height;
+  fxCtx.fillStyle = '#0a0a0f';
+  fxCtx.fillRect(0, 0, W, H);
+  const src = state.work;
+  if (!src) return;
+  const fit = Math.min(W / src.width, H / src.height) * state.zoom;
+  const dW = src.width * fit, dH = src.height * fit;
+  const dx = (W - dW) / 2 + state.panX;
+  const dy = (H - dH) / 2 + state.panY;
+  drawChecker(dx, dy, dW, dH);
+  fxCtx.imageSmoothingQuality = 'high';
+  fxCtx.drawImage(src, dx, dy, dW, dH);
+}
+
+let renderScheduled = false;
+function scheduleRender() {
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    if (state.img) state.work = process(previewLongEdge());
+    paint();
+  });
+}
+let paintScheduled = false;
+function schedulePaint() {
+  if (paintScheduled) return;
+  paintScheduled = true;
+  requestAnimationFrame(() => { paintScheduled = false; paint(); });
+}
+
+// ─── Upload ────────────────────────────────────────────────────────────────
+const uploadOverlay = document.getElementById('upload-overlay');
+const fileInput     = document.getElementById('file-input');
+const imgInfo       = document.getElementById('img-info');
+
+function loadFile(f) {
+  if (!f || !f.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    state.img = img;
+    state.srcName = f.name;
+    state.srcType = f.type;
+    state.zoom = 1; state.panX = 0; state.panY = 0;
+    URL.revokeObjectURL(url);
+    uploadOverlay.classList.add('hidden');
+    const kb = (f.size / 1024);
+    const sizeStr = kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.round(kb) + ' KB';
+    imgInfo.textContent = `${f.name} · ${img.naturalWidth}×${img.naturalHeight} · ${f.type || 'unknown'} · ${sizeStr}`;
+    updateExportLabel();
+    scheduleRender();
+  };
+  img.src = url;
+}
+
+document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { loadFile(e.target.files[0]); fileInput.value = ''; });
+
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); uploadOverlay.classList.add('drag-over'); });
+canvasArea.addEventListener('dragleave', () => uploadOverlay.classList.remove('drag-over'));
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadOverlay.classList.remove('drag-over');
+  loadFile(e.dataTransfer.files[0]);
+});
+
+// ─── Pan + zoom ────────────────────────────────────────────────────────────
+let dragging = false, dragX = 0, dragY = 0;
+fxCanvas.addEventListener('mousedown', e => { dragging = true; dragX = e.clientX; dragY = e.clientY; });
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  state.panX += e.clientX - dragX;
+  state.panY += e.clientY - dragY;
+  dragX = e.clientX; dragY = e.clientY;
+  schedulePaint();
+});
+window.addEventListener('mouseup', () => dragging = false);
+let zoomSettle = 0;
+fxCanvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.1 : 0.9;
+  state.zoom = clamp(state.zoom * f, 0.1, 12);
+  schedulePaint(); // snappy feedback now (grain may look scaled mid-zoom)
+  clearTimeout(zoomSettle);
+  zoomSettle = setTimeout(scheduleRender, 140); // re-resolve grain at the new zoom
+}, { passive: false });
+fxCanvas.addEventListener('dblclick', () => { state.zoom = 1; state.panX = 0; state.panY = 0; scheduleRender(); });
+
+// ─── Controls ──────────────────────────────────────────────────────────────
+function bindSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+    if (key === 'quality') return; // export-only, no re-render
+    scheduleRender();
+  });
+}
+bindSlider('sl-amount',  'val-amount',  'amount',   v => v.toFixed(2));
+bindSlider('sl-size',    'val-size',    'size',     v => v.toFixed(2));
+bindSlider('sl-soft',    'val-soft',    'softness', v => v.toFixed(1));
+bindSlider('sl-bias',    'val-bias',    'bias',     v => Math.round(v));
+bindSlider('sl-quality', 'val-quality', 'quality',  v => v.toFixed(2));
+
+function bindToggle(groupId, key, cb) {
+  document.querySelectorAll('#' + groupId + ' .sb-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#' + groupId + ' .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state[key] = btn.dataset.val;
+      (cb || scheduleRender)();
+    });
+  });
+}
+bindToggle('tg-type',  'type');
+bindToggle('tg-blend', 'blend');
+bindToggle('tg-format', 'format', updateExportLabel);
+
+function bindCheck(id, key, cb) {
+  const el = document.getElementById(id);
+  const ind = el.querySelector('.sb-check-indicator');
+  const sync = () => { el.classList.toggle('checked', state[key]); ind.textContent = state[key] ? '[*]' : '[ ]'; };
+  el.addEventListener('click', () => { state[key] = !state[key]; sync(); (cb || scheduleRender)(); });
+  sync();
+}
+bindCheck('chk-colored', 'colored');
+bindCheck('chk-protect', 'protect');
+
+document.getElementById('btn-regen').addEventListener('click', () => {
+  state.seed = (Math.random() * 1e9) | 0;
+  scheduleRender();
+});
+
+document.querySelectorAll('.sb-section-header').forEach(hdr => {
+  hdr.addEventListener('click', () => {
+    const section = document.getElementById(hdr.dataset.section) || hdr.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    hdr.querySelector('.sb-section-toggle').textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── Export ────────────────────────────────────────────────────────────────
+function resolveOutput() {
+  let mime, ext;
+  if (state.format === 'png')      { mime = 'image/png';  ext = 'png'; }
+  else if (state.format === 'jpg') { mime = 'image/jpeg'; ext = 'jpg'; }
+  else { // match source
+    mime = state.srcType || 'image/png';
+    if (mime === 'image/jpeg')      ext = 'jpg';
+    else if (mime === 'image/webp') ext = 'webp';
+    else { mime = 'image/png'; ext = 'png'; }
+  }
+  return { mime, ext };
+}
+function updateExportLabel() {
+  const { ext } = resolveOutput();
+  document.getElementById('export-lbl').textContent = 'Export ' + ext.toUpperCase();
+}
+updateExportLabel();
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  if (!state.img) return;
+  const { mime, ext } = resolveOutput();
+  const cv = process(Infinity); // full native resolution
+
+  let outCv = cv;
+  if (mime === 'image/jpeg') { // JPEG has no alpha — flatten onto white
+    outCv = document.createElement('canvas');
+    outCv.width = cv.width; outCv.height = cv.height;
+    const o = outCv.getContext('2d');
+    o.fillStyle = '#ffffff';
+    o.fillRect(0, 0, cv.width, cv.height);
+    o.drawImage(cv, 0, 0);
+  }
+
+  const base = (state.srcName || 'image').replace(/\.[^.]+$/, '');
+  outCv.toBlob(blob => {
+    const a = document.createElement('a');
+    a.download = `${base}-grain.${ext}`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, mime, state.quality);
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); document.getElementById('btn-export').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); fileInput.click(); }
+});
+
+lucide.createIcons();
+paint();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

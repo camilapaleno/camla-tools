@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      font-family: 'DM Mono', monospace;
+      letter-spacing: -0.03em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: #000;
+      color: #078e00;
+      margin: 0;
+    }
+
+    a { color: inherit; }
+    .pixel { font-family: "pf-pixelscript", sans-serif; }
+
+    /* ── Page shell ── */
+    .page {
+      display: flex;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .hp-sidebar {
+      width: 300px;
+      margin: 10px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #078e00;
+      height: calc(100vh - 20px);
+      overflow: hidden;
+      padding: 10px 0;
+    }
+    .hp-sidebar .hp-block:last-child {
+      margin-top: auto;
+      margin-bottom: 0px;
+    }
+
+    .hp-block {
+      padding: 0px 14px;
+      overflow: hidden;
+    }
+
+    /* Top: logo + status row */
+    .hp-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 11px;
+      flex-wrap: wrap;
+    }
+    .hp-logo {
+      display: block;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .hp-logo .pixel {
+      font-size: 13px;
+    }
+    .hp-icons {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      gap: 6px;
+    }
+
+
+
+    .hp-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      flex-wrap: wrap;
+    }
+    .hp-top svg { width: 12px; height: 12px; stroke: #078e00; }
+
+    .hp-clock { white-space: nowrap; }
+    .hp-location { opacity: 0.7; }
+    .hp-status-sep { opacity: 0.4; }
+
+    /* ASCII portrait (ascii-home.txt) */
+    .hp-ascii-portrait {
+      overflow: hidden;
+      min-height: 120px;
+      margin-left: -3px;
+    }
+    .hp-ascii-portrait-container{
+      overflow: hidden;
+    }
+
+    .hp-ascii-portrait pre {
+      margin: 0;
+      font-family: 'DM Mono', monospace;
+      white-space: pre;
+      line-height: 1.15;
+      color: #078e00;
+      transform-origin: top left;
+    }
+
+    /* Bio text */
+    .hp-bio {
+      font-size: 11px;
+      line-height: 1.6;
+      margin: 0;
+      padding-bottom: 20px;
+    }
+
+    /* CTA marquee */
+    .hp-cta-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+      margin-bottom: 20px;
+    }
+    .hp-cta-track {
+      display: inline-flex;
+      width: max-content;
+      animation: hp-marquee 14s linear infinite;
+    }
+    .hp-cta-wrap:hover .hp-cta-track {
+      animation-play-state: paused;
+    }
+    .hp-cta {
+      font-size: 21px;
+      margin: 20px 0;
+      line-height: .3;
+      letter-spacing: 0;
+      white-space: nowrap;
+      display: inline-block;
+      padding-right: 48px;
+      transform: scaleY(2.5);
+      transform-origin: top center;
+    }
+    @keyframes hp-marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hp-cta-track { animation: none; }
+    }
+
+    /* Links */
+    .hp-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hp-links a {
+      font-size: 11px;
+      text-decoration: none;
+      letter-spacing: 0;
+    }
+    .hp-links a:hover { text-decoration: underline; }
+
+    /* ASCII sequence (ascii-home-sequence.json) */
+    .hp-ascii-seq {
+      border-bottom: none;
+      display: flex;
+      justify-content: center;
+    }
+    .hp-ascii-seq canvas { display: block; max-width: 100%; }
+
+    /* push the sidebar's last block to fill remaining height like the ref shot */
+    .hp-sidebar .hp-ascii-seq { margin-top: auto; }
+
+    /* ── Main area ── */
+    .hp-main {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 0px;
+    }
+
+    .tool-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      
+    }
+    .tool-links a {
+      font-size: 12px;
+      text-decoration: none;
+      white-space: nowrap;
+      padding: 4px 6px;
+      border: 1px solid #078e00;
+    }
+    .tool-links a:hover { text-decoration: underline; }
+
+    /* Reel gallery */
+    .reel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .reel-item {
+      position: relative;
+      height: 200px;
+      overflow: hidden;
+      display: block;
+      background: #0a0a0a;
+    }
+    .reel-item img,
+    .reel-item .reel-fallback {
+      height: 200px;
+      width: auto;
+      display: block;
+      filter: contrast(500%) saturate(500%);
+    }
+    .reel-item .reel-fallback {
+      width: 200px;
+      font-family: monospace;
+      font-size: 11px;
+      line-height: 1.3;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .reel-caption {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      color: #078e00;
+      font-size: 11px;
+      padding: 5px 8px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+    .reel-item:hover img{
+      filter: contrast(500%) saturate(500%) hue-rotate(90deg);
+
+    }
+
+    @media (max-width: 900px) {
+      .page { flex-direction: column; }
+      .hp-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #078e00;
+        min-height: 0;
+      }
+      .hp-sidebar .hp-ascii-seq { margin-top: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── Sidebar ── -->
+  <aside class="hp-sidebar">
+
+    <div class="hp-block">
+      <DIV class="hp-top">
+        <a href="#" class="hp-logo"><span class="pixel">camla</span>.tools</a>
+        <div class="hp-icons">
+          <i data-lucide="globe"></i>
+        <i data-lucide="headphones"></i>
+        <i data-lucide="battery"></i></div>
+        
+      </DIV>
+    
+    </div>
+
+    <div class="hp-block hp-ascii-portrait">
+      <div class="hp-ascii-portrait-container">
+        <pre id="hp-ascii-txt"></pre>
+      </div>
+      
+    </div>
+
+    <div class="hp-block">
+      <p class="hp-bio">
+        I'm Camila — I build small creative-coding tools and interactive
+        experiments. cam.tools is a growing collection of the ones I like
+        to keep close at hand.
+      </p>
+    </div>
+    <div class="hp-block hp-links">
+      <a href="#">> CHECK OUT WEBSITES I'VE MADE</a>
+      <a href="#">> CHECK OUT MY STUFF</a>
+      <a href="#">> FOLLOW ME ON INSTAGRAM</a>
+    </div>
+
+    <div class="hp-block">
+      <div class="hp-block hp-cta-wrap">
+        <div class="hp-cta-track">
+          <span class="hp-cta">NEED A WEBSITE? E-MAIL ME :)</span>
+          <span class="hp-cta" aria-hidden="true">NEED A WEBSITE? E-MAIL ME :)</span>
+        </div>        
+      </div>
+      <div class="hp-status">
+        
+        <span class="hp-clock" id="hp-clock"></span>
+        <span class="hp-status-sep">·</span>
+        <span class="hp-location" id="hp-location"></span>
+      </div>
+    </div>
+
+
+
+    <!-- <div class="hp-block hp-ascii-seq">
+      <canvas id="hp-ascii-seq-canvas"></canvas>
+    </div> -->
+
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="hp-main">
+
+    <nav class="tool-links" id="tool-links">
+      <a href="image-distort/index.html">Image Distort</a>
+      <a href="image-dither/index.html">Image Dither</a>
+      <a href="image-crt/index.html">Image CRT</a>
+      <a href="media-mockups/index.html">Media Mockups</a>
+      <a href="image-recolor/index.html">Image Recolor</a>
+      <!-- <a href="image-ascii/index.html">Image ASCII</a> -->
+      <a href="image-grain/index.html">Image Grain</a>
+      <a href="ascii-webcam-tool/index.html">ASCII Webcam</a>
+      <a href="scan-type-tool/index.html">Scan Type</a>
+      <a href="chladni-tool/index.html">Chladni Art</a>
+      <a href="ascii-graphic-tool/index.html">ASCII Graphic</a>
+      <a href="ascii-svg-tool/index.html">ASCII SVG</a>
+    </nav>
+
+    <div class="reel">
+      <a href="media-mockups/index.html" class="reel-item">
+        <img src="media-mockup-thumb-2.gif" alt="Media Mockups">
+        <span class="reel-caption">Media Mockups</span>
+      </a>
+      <a href="image-distort/index.html" class="reel-item">
+        <img src="image-distort-thumb.png" alt="Image Distort">
+        <span class="reel-caption">Image Distort</span>
+      </a>
+
+      <a href="image-dither/index.html" class="reel-item">
+        <img src="image-dither-thumb.png" alt="Image Dither">
+        <span class="reel-caption">Image Dither</span>
+      </a>      
+
+      <a href="image-crt/index.html" class="reel-item">
+        <img src="image-crt-thumb.png" alt="Image CRT">
+        <span class="reel-caption">Image CRT</span>
+      </a>
+      <a href="ascii-svg-tool/index.html" class="reel-item">
+        <img src="ascii-svg-thumb.png" alt="ASCII SVG">
+        <span class="reel-caption">ASCII SVG</span>
+      </a>
+
+      <a href="image-recolor/index.html" class="reel-item">
+        <img src="image-recolor-thumb.png" alt="Image Recolor">
+        <span class="reel-caption">Image Recolor</span>
+      </a>
+
+      <!-- <a href="image-ascii/index.html" class="reel-item">
+        <div class="reel-fallback" style="background:linear-gradient(135deg,#0f0f0f,#1a1a1a,#111);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2)">.:@#%:.<br>@#%.:@#<br>%.:@#%.</div>
+        <span class="reel-caption">Image ASCII</span>
+      </a> -->     
+
+      <a href="ascii-webcam-tool/index.html" class="reel-item">
+        <img src="ascii-webcam-thumb-2.png" alt="ASCII Webcam">
+        <span class="reel-caption">ASCII Webcam</span>
+      </a>
+      <a href="scan-type-tool/index.html" class="reel-item">
+        <img src="scan-type-thumb.png" alt="Scan Type">
+        <span class="reel-caption">Scan Type</span>
+      </a>
+
+      <a href="image-grain/index.html" class="reel-item">
+        <img src="image-grain-thumb.jpg" alt="Image Grain">
+        <span class="reel-caption">Image Grain</span>
+      </a>
+
+
+
+
+
+
+
+      <a href="chladni-tool/index.html" class="reel-item">
+        <img src="chladni-thumb.png" alt="Chladni Art">
+        <span class="reel-caption">Chladni Art</span>
+      </a>
+
+      <a href="ascii-graphic-tool/index.html" class="reel-item">
+        <img src="ascii-graphic-thumb.jpg" alt="ASCII Graphic">
+        <span class="reel-caption">ASCII Graphic</span>
+      </a>
+
+
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // ─── Clock + location ──────────────────────────────────────────────────────
+  function updateClock() {
+    const el = document.getElementById('hp-clock');
+    if (el) el.textContent = new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  (function updateLocation() {
+    const el = document.getElementById('hp-location');
+    if (!el) return;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const city = tz.split('/').pop().replace(/_/g, ' ');
+      el.textContent = city;
+    } catch {
+      el.textContent = '';
+    }
+  })();
+
+  // ─── ASCII portrait (ascii-home.txt), scaled to fit the sidebar column ─────
+  async function initAsciiPortrait() {
+    const pre = document.getElementById('hp-ascii-txt');
+    const box = pre.parentElement;
+    try {
+      const res = await fetch('ascii-home.txt');
+      pre.textContent = await res.text();
+    } catch {
+      return;
+    }
+    function fit() {
+      pre.style.transform = '';
+      pre.style.fontSize = '12px';
+      const naturalWidth = pre.scrollWidth;
+      if (!naturalWidth) return;
+      const ratio = box.clientWidth / naturalWidth;
+      pre.style.transform = `scale(${ratio})`;
+      box.style.height = (pre.scrollHeight * ratio) + 'px';
+    }
+    fit();
+    window.addEventListener('resize', fit);
+  }
+  initAsciiPortrait();
+
+  // ─── ASCII sequence (ascii-home-sequence.json), looping canvas playback ────
+  async function initAsciiSequence() {
+    const canvas = document.getElementById('hp-ascii-seq-canvas');
+    const wrap = canvas.parentElement;
+    let data;
+    try {
+      const res = await fetch('ascii-home-sequence.json');
+      data = await res.json();
+    } catch {
+      return;
+    }
+    if (!data.frames || !data.frames.length) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = wrap.clientWidth;
+    const scale = displayWidth / data.width;
+    const displayHeight = data.height * scale;
+    const step = data.step * scale;
+
+    canvas.width  = Math.round(displayWidth * dpr);
+    canvas.height = Math.round(displayHeight * dpr);
+    canvas.style.width  = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.font = `${step * 0.95}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    let frameIdx = 0;
+    function drawFrame() {
+      const frame = data.frames[frameIdx];
+      ctx.fillStyle = data.background || '#000';
+      ctx.fillRect(0, 0, displayWidth, displayHeight);
+      for (const cell of frame.cells) {
+        ctx.fillStyle = cell.color;
+        ctx.fillText(cell.ch, cell.c * step + step / 2, cell.r * step + step / 2);
+      }
+      frameIdx = (frameIdx + 1) % data.frames.length;
+    }
+    drawFrame();
+    setInterval(drawFrame, 1000 / (data.fps || 8));
+  }
+  window.addEventListener('load', initAsciiSequence);
+</script>
+</body>
+</html>

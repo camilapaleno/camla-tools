@@ -1,0 +1,263 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   CAM.TOOLS — MOBILE LAYER
+   Drop-in mobile experience for every sidebar-app tool. Turns the desktop left
+   sidebar into a bottom sheet and adds the DRUM_SCRUB relative-drag control.
+   Everything here is gated on (max-width: 720px); desktop is untouched.
+   Pairs with cam-tools-mobile.js. Styling is driven entirely from the existing
+   cam-tools-ui.css design tokens.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Mobile DOM is built on every load but stays hidden until the media query hits. */
+#m-topbar,
+#m-drum { display: none; }
+
+@media (max-width: 720px) {
+
+  html, body { overscroll-behavior: none; }
+
+  /* ── Layout: canvas fills the viewport, sidebar becomes an overlay sheet ── */
+  body.sidebar-app {
+    display: block;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #canvas-area {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  /* ── Top bar ── */
+  #m-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: var(--sb-gap);
+    height: calc(46px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 10px 0;
+    background: linear-gradient(var(--panel) 62%, transparent);
+    border-bottom: 1px solid var(--sb-border-subtle);
+  }
+  #m-topbar .m-tb-back {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; flex-shrink: 0;
+    color: var(--sb-text-mid); text-decoration: none;
+    border: 1px solid var(--sb-line); border-radius: var(--sb-radius-sm);
+    background: var(--sb-surface-2);
+    font-size: 16px; line-height: 1;
+  }
+  #m-topbar .m-tb-title {
+    flex: 1; min-width: 0;
+    font-size: var(--sb-font-sm); font-weight: 300; color: var(--sb-text-mid);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #m-topbar .m-tb-btn {
+    flex-shrink: 0;
+    height: 34px; padding: 0 12px;
+    display: flex; align-items: center;
+    background: var(--sb-surface-2);
+    border: 1px solid var(--sb-line);
+    border-radius: var(--sb-radius-sm);
+    color: var(--sb-text-mid);
+    font-family: inherit; font-size: var(--sb-font-xs);
+    white-space: nowrap;
+  }
+  #m-topbar .m-tb-btn.m-tb-primary {
+    background: var(--sb-accent-bg);
+    border-color: var(--sb-accent);
+    color: var(--sb-accent);
+  }
+  #m-topbar .m-tb-chevron {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--sb-surface-2);
+    border: 1px solid var(--sb-line);
+    border-radius: var(--sb-radius-sm);
+    color: var(--sb-text-mid);
+    font-size: 13px; line-height: 1;
+    transition: transform 0.2s;
+  }
+  body.m-sheet-open #m-topbar .m-tb-chevron { transform: rotate(180deg); }
+
+  /* ── Bottom sheet (the repurposed #sidebar) ── */
+  #sidebar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    top: auto;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+    max-height: 88vh;
+    max-height: 88dvh;
+    z-index: 20;
+    border: none;
+    border-top: 1px solid var(--sb-border);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.55);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #sidebar, #m-drum, #m-drum * { touch-action: none; }
+  .sb-body, .m-param-list { touch-action: pan-y; }
+
+  /* Sheet header = drag handle */
+  .sb-toolbar {
+    position: relative;
+    justify-content: center;
+    padding-top: 16px;
+    flex-shrink: 0;
+  }
+  .sb-toolbar::before {
+    content: "";
+    position: absolute;
+    top: 7px; left: 50%;
+    width: 36px; height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: var(--sb-line-hover);
+  }
+  .sb-toolbar .toolbar-title { display: inline; }
+
+  /* Collapsed: only the toolbar + drum peek above the fold */
+  .sb-body { overscroll-behavior: contain; }
+  .sb-body, .sb-footer { display: none; }
+  body.m-sheet-open .sb-body { display: block; flex: 1 1 auto; min-height: 0; }
+  body.m-sheet-open .sb-footer { display: block; }
+
+  /* ── Drum block: param list + drum card + secondary actions ── */
+  #m-drum {
+    display: block;
+    flex-shrink: 0;
+    padding: 6px 12px 12px;
+    border-bottom: 1px solid var(--sb-border-subtle);
+  }
+
+  .m-param-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 168px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-bottom: 10px;
+  }
+  .m-param-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    height: 40px; padding: 0 12px;
+    border-radius: var(--sb-radius-sm);
+    border: 1px solid transparent;
+    color: var(--sb-text-lo);
+    font-size: var(--sb-font-sm);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .m-param-row .m-pr-val {
+    font-variant-numeric: tabular-nums;
+    color: var(--sb-text-mid);
+  }
+  .m-param-row.sel {
+    background: var(--sb-accent-bg);
+    border-color: var(--sb-accent);
+    color: var(--sb-accent);
+  }
+  .m-param-row.sel .m-pr-val { color: var(--sb-accent); }
+
+  /* Drum card — the entire card is the drag surface */
+  .m-drum-card {
+    position: relative;
+    height: 150px;
+    background: var(--panel);
+    border: 1px solid var(--sb-border-subtle);
+    border-radius: var(--sb-radius-lg);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .m-drum-card:focus-visible { outline: 1px solid var(--sb-accent); outline-offset: -1px; }
+
+  .m-drum-name {
+    position: absolute; top: 14px; left: 0; right: 0;
+    text-align: center;
+    font-size: var(--sb-font-2xs);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--sb-text-lo);
+  }
+  .m-drum-value {
+    position: absolute; top: 30px; left: 0; right: 0;
+    text-align: center;
+    font-size: 40px; line-height: 44px;
+    font-variant-numeric: tabular-nums;
+    color: var(--sb-text-hi);
+  }
+  .m-drum-hint {
+    position: absolute; left: 12px; bottom: 60px;
+    font-size: var(--sb-font-2xs);
+    color: var(--sb-text-lo);
+  }
+
+  .m-ruler {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 56px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%);
+  }
+  .m-ruler-track {
+    position: absolute;
+    bottom: 0; left: 50%;
+    width: 1440px; margin-left: -720px;
+    height: 100%;
+    background-image:
+      repeating-linear-gradient(90deg, var(--sb-text-lo) 0 1px, transparent 1px 14.4px),
+      repeating-linear-gradient(90deg, var(--sb-text-mid) 0 1.5px, transparent 1.5px 144px);
+    background-position: bottom left, bottom left;
+    background-size: 100% 22px, 100% 34px;
+    background-repeat: repeat-x, repeat-x;
+    opacity: 0.85;
+  }
+  .m-ruler-track.m-anim { transition: transform 0.18s ease-out; }
+  .m-ruler-center {
+    position: absolute; left: 50%; bottom: 0;
+    width: 3px; height: 56px;
+    margin-left: -1.5px;
+    border-radius: 1px;
+    background: var(--sb-accent);
+  }
+
+  .m-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .m-actions button {
+    flex: 1;
+    height: 44px;
+    background: transparent;
+    border: 1px solid var(--sb-line);
+    border-radius: var(--sb-radius-sm);
+    color: var(--sb-text-lo);
+    font-family: inherit; font-size: var(--sb-font-xs);
+    text-transform: lowercase; letter-spacing: 0.03em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .m-actions button:active { color: var(--sb-text-hi); border-color: var(--sb-line-hover); }
+
+  /* ── Roomier hit targets for the full control list in the expanded sheet ── */
+  .sb-body .sb-section-header { padding-top: 12px; padding-bottom: 12px; }
+  .sb-body .sb-ctrl { padding-top: 9px; padding-bottom: 9px; }
+  .sb-body .sb-ctrl input[type=range] { max-width: none; height: 30px; }
+  #sidebar .sb-body input[type=range]::-webkit-slider-thumb { width: 18px; height: 26px; }
+  #sidebar .sb-body input[type=range]::-moz-range-thumb { width: 18px; height: 26px; }
+  .sb-body .sb-toggle-btn { padding: 8px 12px; }
+  .sb-body .sb-btn { padding: 8px 12px; }
+  .sb-body .sb-check { padding-top: 10px; padding-bottom: 10px; }
+  .sb-body .sb-upload { padding: 14px; }
+  .sb-footer .sb-export-btn { padding: 14px; }
+}

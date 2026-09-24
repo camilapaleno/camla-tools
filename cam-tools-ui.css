@@ -1,0 +1,1317 @@
+/*
+ * cam.tools UI Design System
+ * ─────────────────────────
+ * A dark, floating-pill UI for full-screen canvas tools.
+ *
+ * Usage: import this file and add the HTML patterns below.
+ *
+ * ── Required dependencies ──────────────────────────────────────────────────────
+ *   <link rel="preconnect" href="https://fonts.googleapis.com">
+ *   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ *   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+ *   <script src="https://unpkg.com/lucide@latest"></script>
+ *   (call lucide.createIcons() on page load)
+ *
+ * Icons: use width="15" height="15" stroke-width="1.5" on all <i data-lucide="..."> tags
+ *
+ * ── Favicon ────────────────────────────────────────────────────────────────────
+ * Place the following asset files in your project root:
+ *   c-tools.svg              — primary SVG favicon (also used as toolbar logo)
+ *   favicon.ico              — fallback for legacy browsers
+ *   favicon-16x16.png        — 16×16 PNG
+ *   favicon-32x32.png        — 32×32 PNG
+ *   apple-touch-icon.png     — 180×180 PNG for iOS home screen
+ *   android-chrome-192x192.png
+ *   android-chrome-512x512.png
+ *   site.webmanifest         — PWA manifest (references the android-chrome PNGs)
+ *
+ * Add to <head>:
+ *   <title>Your Tool Name</title>
+ *   <link rel="icon" type="image/svg+xml" href="c-tools.svg">
+ *   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+ *   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+ *   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+ *   <link rel="manifest" href="site.webmanifest">
+ *   <link rel="shortcut icon" href="favicon.ico">
+ *
+ * Browsers pick the best format automatically: SVG first, then PNG, then ICO.
+ */
+
+
+/* ── Reset ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+
+/* ── Design tokens ──────────────────────────────────────────────────────────── */
+:root {
+  --bg:          #000000;
+  --panel:       #000000;
+  --panel-hover: #021702;
+  --border:      rgba(72, 255, 0, 0.452);
+  --border-hi:   rgba(98, 255, 0, 0.673);
+  --text-hi:     #00ff2fce;
+  --text-mid:    #3cff0099;
+  --text-lo:     #00ff3c6a;
+  --accent:      #b7d053;
+  --accent-bg:   rgba(183,208,83,0.15);
+
+  /* Spacing */
+  --toolbar-inset: 14px;   /* toolbar/bar offset from viewport edges */
+  --pad-pill:       4px;   /* tb-icon-pill inner padding */
+  --pad-btn-y:      8px;   /* tool-btn vertical padding */
+  --pad-btn-x:     12px;   /* tool-btn horizontal padding */
+  --pad-btn-sq:     8px;   /* icon-only square button padding */
+  --pad-btn-bb-y:   5px;   /* bottom-bar group button vertical */
+  --pad-btn-bb-x:   7px;   /* bottom-bar group button horizontal */
+  --pad-panel-x:   14px;   /* panel section horizontal padding */
+  --pad-bb-pill-y:  5px;   /* bb-pill vertical padding */
+  --pad-bb-pill-x:  8px;   /* bb-pill horizontal padding */
+
+  /* ── Sidebar design tokens ──────────────────────────────────────────────────
+   * Everything the sidebar layout (#sidebar, .sb-*) uses is driven from here.
+   * Edit these to restyle the whole sidebar — colors, spacing, radii — at once.
+   */
+
+  /* Sidebar — layout */
+  --sb-width: 300px;
+
+  /* Sidebar — surface colors (reuse global tokens so sidebar stays in sync
+   * with the rest of the UI; override here to diverge) */
+  --sb-bg:            var(--panel);
+  --sb-bg-hover:      var(--panel-hover);
+  --sb-border:        var(--border-hi);   /* outer sidebar border */
+  --sb-border-subtle: var(--border);      /* section/footer dividers */
+  --sb-text-hi:       var(--text-hi);
+  --sb-text-mid:      var(--text-mid);
+  --sb-text-lo:       var(--text-lo);
+  --sb-accent:        var(--accent);
+  --sb-accent-bg:     var(--accent-bg);
+
+  /* Sidebar — control surfaces & lines (white-alpha scale, lightest → strongest) */
+  --sb-line:          rgba(0, 255, 34, 0.1);  /* default input/button/toggle border, scrollbar */
+  --sb-line-dashed:   rgba(0, 255, 8, 0.15);  /* upload dropzone border */
+  --sb-line-hover:    rgba(85, 255, 0, 0.22);  /* input focus / toggle active border */
+  --sb-line-strong:   rgba(34, 255, 0, 0.28);  /* upload dropzone hover border */
+  --sb-surface-1:     rgba(0, 255, 34, 0.03);  /* upload dropzone hover bg */
+  --sb-surface-2:     rgba(0, 255, 8, 0.04);  /* button / toggle-group bg */
+  --sb-surface-3:     rgba(0, 255, 21, 0.05);  /* text input bg */
+  --sb-surface-4:     rgba(13, 255, 0, 0.06);  /* kbd chip bg */
+  --sb-surface-5:     rgba(0, 255, 21, 0.1);  /* active toggle-btn bg */
+
+  /* Sidebar — border radius scale */
+  --sb-radius-xs: 4px;   /* kbd chip, toggle-btn */
+  --sb-radius-sm: 5px;   /* sb-btn */
+  --sb-radius:    6px;   /* sb-input */
+  --sb-radius-md: 7px;   /* upload dropzone, toggle-group */
+  --sb-radius-lg: 8px;   /* export button */
+
+  /* Sidebar — spacing scale */
+  --sb-gap-xs: 3px;
+  --sb-gap-sm: 4px;
+  --sb-gap:    6px;
+  --sb-gap-md: 8px;
+
+  --sb-space-2xs: 2px;
+  --sb-space-xs:  3px;
+  --sb-space-sm:  4px;
+  --sb-space:     5px;
+  --sb-space-md:  7px;
+  --sb-space-lg:  8px;
+  --sb-space-xl:  9px;
+  --sb-space-2xl: 10px;
+  --sb-space-3xl: 11px;
+  --sb-space-4xl: 12px;
+  --sb-space-5xl: 14px;  /* section horizontal padding */
+
+  /* Sidebar — font sizes */
+  --sb-font-2xs: 10px;
+  --sb-font-xs:  11px;
+  --sb-font-sm:  12px;
+  --sb-font-md:  14px;
+  --sb-icon:     20px;   /* toolbar logo */
+
+  /* Sidebar — range slider (.sb-ctrl input[type=range]) */
+  --sb-slider-h:            24px;
+  --sb-slider-track-bg:     rgba(0, 251, 21, 0.07);
+  --sb-slider-track-border: rgba(34, 255, 0, 0.06);
+  --sb-slider-track-radius: 3px;
+  --sb-slider-thumb-w:      12px;
+  --sb-slider-thumb-h:      20px;
+  --sb-slider-thumb-radius: 3px;
+  --sb-slider-thumb-bg:     #b7d053;
+  --sb-slider-thumb-bg-hover: rgba(255,255,255,0.96);
+}
+
+
+/* ── Base ───────────────────────────────────────────────────────────────────── */
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  font-family: 'Google Sans Code', 'JetBrains Mono', monospace;
+  overflow: hidden;
+  color: var(--text-hi);
+  font-size: 12px;
+}
+
+
+/* ── Viewport & canvas ──────────────────────────────────────────────────────── */
+/*
+ * Full-screen canvas layer. Sits behind all UI chrome.
+ * cursor: grab enables pan interaction; JS adds .dragging while mouse is held.
+ *
+ * HTML:
+ *   <div id="viewport">
+ *     <canvas id="fx-canvas"></canvas>
+ *     <div id="upload-overlay">...</div>
+ *   </div>
+ */
+#viewport {
+  position: fixed;
+  inset: 0;
+  background: #050508;
+  cursor: grab;
+}
+#viewport.dragging { cursor: grabbing; }
+
+#fx-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ── Upload overlay ──────────────────────────────────────────────────────────── */
+/*
+ * Centered hint shown on the canvas before any file is loaded.
+ * pointer-events: none so it doesn't block canvas interaction.
+ * Add .drag-over when a file is dragged over the window.
+ * Add .hidden once a file has been loaded (display:none).
+ *
+ * HTML:
+ *   <div id="upload-overlay">
+ *     <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+ *     <span>Drop an image or video</span>
+ *   </div>
+ */
+#upload-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-lo);
+  font-size: 13px;
+  font-weight: 300;
+  pointer-events: none;
+  transition: color 0.2s, background 0.2s;
+}
+#upload-overlay svg { width: 40px; height: 40px; stroke-width: 1.5; }
+#upload-overlay.drag-over {
+  background: rgba(183,208,83,0.04);
+  color: var(--accent);
+}
+#upload-overlay.hidden { display: none; }
+
+
+/* ── Shared pill shell ──────────────────────────────────────────────────────── */
+/*
+ * Apply to any floating container.
+ * HTML: <div class="pill">...</div>
+ */
+.pill {
+  background: var(--panel);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+
+/* ── Toolbar ────────────────────────────────────────────────────────────────── */
+/*
+ * Three-column grid: left (logo + title) | center | right (actions)
+ * Pointer events are disabled on the grid itself; re-enabled on children.
+ *
+ * HTML:
+ *   <div id="toolbar">
+ *     <div class="tb-left">
+ *       <a href="https://yoursite.com" target="_blank" rel="noopener"
+ *          style="display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit;">
+ *         <img src="c-tools.svg" class="toolbar-logo" alt="c-tools">
+ *         <span class="toolbar-title">Tool Name</span>
+ *       </a>
+ *     </div>
+ *     <div class="tb-center"><!-- optional center controls --></div>
+ *     <div class="tb-right"><!-- icon pills, export button --></div>
+ *   </div>
+ */
+#toolbar {
+  position: absolute;
+  top: var(--toolbar-inset); left: var(--toolbar-inset); right: var(--toolbar-inset);
+  z-index: 100;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
+  pointer-events: none;
+}
+#toolbar > * { pointer-events: auto; }
+
+.tb-left   { display: flex; align-items: center; gap: 8px; }
+.tb-center { display: flex; justify-content: center; align-items: flex-start; gap: 6px; }
+.tb-right  { display: flex; align-items: flex-start; gap: 6px; }
+
+/* Logo image */
+.toolbar-logo {
+  width: 28px; height: 28px;
+  object-fit: contain;
+  margin: 10px 5px 10px 10px;
+}
+
+/* Tool name next to logo */
+.toolbar-title {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+
+
+/* ── Top-bar icon pill ──────────────────────────────────────────────────────── */
+/*
+ * Wraps one or more icon buttons, with an optional dropdown panel.
+ *
+ * HTML:
+ *   <div class="tb-icon-pill ctrl-wrap">
+ *     <button class="tool-btn icon-only" id="btn-foo">
+ *       <span class="ico"><i data-lucide="icon-name" width="15" height="15" stroke-width="1.5"></i></span>
+ *       <span id="lbl-foo">Label</span>
+ *     </button>
+ *     <div class="panel align-right" id="panel-foo">...</div>
+ *   </div>
+ */
+.tb-icon-pill {
+  background: var(--panel);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  padding: var(--pad-pill);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  position: relative;
+  flex-shrink: 0;
+}
+
+
+/* ── Buttons ────────────────────────────────────────────────────────────────── */
+/*
+ * .tool-btn           — text + optional icon
+ * .tool-btn.icon-only — square, icon only
+ * .tool-btn.active    — accent highlight (green)
+ *
+ * HTML:
+ *   <button class="tool-btn">
+ *     <span class="ico"><i data-lucide="download" width="15" height="15" stroke-width="1.5"></i></span>
+ *     Export
+ *   </button>
+ *
+ *   <button class="tool-btn icon-only">
+ *     <span class="ico"><i data-lucide="play" width="15" height="15" stroke-width="1.5"></i></span>
+ *   </button>
+ */
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: var(--pad-btn-y) var(--pad-btn-x);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-mid);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  user-select: none;
+}
+.tool-btn.icon-only { padding: var(--pad-btn-sq); }
+.tool-btn:hover     { background: var(--panel-hover); color: var(--text-hi); }
+.tool-btn.active    { background: var(--accent-bg);   color: var(--accent); }
+.tool-btn .ico      { display: flex; align-items: center; opacity: 0.8; }
+
+/* Tighter variant for buttons inside bottom bar groups */
+.bb-group .tool-btn { padding: var(--pad-btn-bb-y) var(--pad-btn-bb-x); border-radius: 6px; }
+
+/* Separator lines */
+.tb-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+.bb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+
+/* ── Dropdown panels ────────────────────────────────────────────────────────── */
+/*
+ * .panel            — opens below trigger (toolbar use)
+ * .panel.panel-up   — opens above trigger (bottom bar use)
+ * .panel.align-right — right-aligns the panel to its trigger
+ * Toggle visibility by adding/removing .open
+ *
+ * HTML:
+ *   <div class="ctrl-wrap">
+ *     <button class="tool-btn" id="btn-foo">...</button>
+ *     <div class="panel panel-up align-right" id="panel-foo">
+ *       <div class="p-sec">
+ *         <div class="p-sec-label">Section Title</div>
+ *         <div class="p-btns two-col">
+ *           <button class="active">Option A</button>
+ *           <button>Option B</button>
+ *         </div>
+ *       </div>
+ *     </div>
+ *   </div>
+ */
+.ctrl-wrap { position: relative; }
+
+.panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 0;
+  min-width: 220px;
+  background: var(--panel);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04);
+  z-index: 200;
+  overflow: hidden;
+}
+.panel.open        { display: block; }
+.panel.align-right { left: auto; right: 0; transform: none; }
+
+.panel-up {
+  top: auto;
+  bottom: calc(100% + 14px);
+}
+
+/* Panel section — use multiple .p-sec blocks to group content */
+.p-sec {
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.p-sec:last-child { border-bottom: none; }
+
+/* Section heading */
+.p-sec-label {
+  padding: 0 var(--pad-panel-x) 6px;
+  font-size: 10px;
+  font-weight: 300;
+  text-transform: uppercase;
+  color: var(--text-lo);
+}
+
+/*
+ * Option button grid inside a section.
+ * Add .two-col for a 2-column grid (e.g. dither modes, filters).
+ *
+ * HTML:
+ *   <div class="p-btns">
+ *     <button>Option A</button>
+ *     <button class="active">Option B</button>
+ *   </div>
+ *
+ *   <div class="p-btns two-col">
+ *     <button>A</button><button>B</button>
+ *     <button>C</button><button>D</button>
+ *   </div>
+ */
+.p-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px var(--pad-panel-x) 8px;
+}
+.p-btns.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.p-btns.two-col button { text-align: center; }
+.p-btns button {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-hi);
+  border-radius: 5px;
+  color: var(--text-mid);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.p-btns button:hover  { background: var(--panel-hover); color: var(--text-hi); }
+.p-btns button.active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 300;
+}
+
+/*
+ * Effects slider row — label + range + value, used in Effects panel.
+ *
+ * HTML:
+ *   <div class="p-fx-row">
+ *     <span class="p-fx-lbl">Bloom</span>
+ *     <input type="range" min="0" max="1" step="0.01" value="0">
+ *     <span class="ctrl-val" id="val-bloom">0.00</span>
+ *   </div>
+ */
+.p-fx-row { display: flex; align-items: center; gap: 8px; padding: 4px var(--pad-panel-x); }
+.p-fx-lbl { font-size: 11px; color: var(--text-lo); text-transform: uppercase; width: 58px; flex-shrink: 0; }
+.p-fx-row input[type=range] { flex: 1; min-width: 80px; }
+
+/* Generic row */
+.p-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px var(--pad-panel-x);
+  min-height: 26px;
+}
+
+/*
+ * Colour row — label + swatch/input pair, used inside panels.
+ *
+ * HTML:
+ *   <div class="p-color-row">
+ *     <span class="lbl">Background</span>
+ *     <div class="swatch" ...>...</div>
+ *     <span style="font-size:11px;color:var(--text-mid);">#050508</span>
+ *   </div>
+ */
+.p-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px var(--pad-panel-x);
+}
+.p-color-row .lbl { flex: 1; font-size: 12px; color: var(--text-mid); min-width: 28px; }
+
+/*
+ * Toggle group — segmented control, typically 2–3 options.
+ *
+ * HTML:
+ *   <div class="toggle-group">
+ *     <button class="toggle-btn active">Option A</button>
+ *     <button class="toggle-btn">Option B</button>
+ *   </div>
+ */
+.toggle-group {
+  display: flex;
+  background: rgba(255,255,255,0.04);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+  margin: 4px var(--pad-panel-x) 6px;
+}
+.toggle-btn {
+  flex: 1;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-mid);
+  cursor: pointer;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 300;
+  transition: background 0.15s, color 0.15s;
+}
+.toggle-btn.active { background: var(--panel-hover); color: var(--text-hi); }
+
+/*
+ * Small label — used above vertical sliders or as secondary text.
+ *
+ * HTML: <span class="ctrl-lbl-sm">Zoom</span>
+ */
+.ctrl-lbl-sm {
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--text-lo);
+  text-transform: uppercase;
+}
+
+
+/* ── Color swatch ───────────────────────────────────────────────────────────── */
+/*
+ * Clickable swatch that opens the native color picker.
+ * Set the swatch background via JS: el.style.background = hex
+ *
+ * HTML:
+ *   <div class="swatch" id="my-swatch" style="background:#050508">
+ *     <input type="color" id="my-color-input" value="#050508">
+ *   </div>
+ *
+ * JS:
+ *   input.addEventListener('click',  e => e.stopPropagation()); // prevent panel close
+ *   input.addEventListener('input',  () => { swatch.style.background = input.value; ... });
+ *   input.addEventListener('change', () => { swatch.style.background = input.value; ... });
+ */
+.swatch {
+  position: relative;
+  width: 26px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.18);
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.swatch input[type=color] {
+  position: absolute;
+  top: -6px; left: -6px;
+  width: 40px; height: 32px;
+  border: none; outline: none;
+  padding: 0; cursor: pointer;
+  opacity: 0;
+}
+
+
+/* ── Palette panel ──────────────────────────────────────────────────────────── */
+/*
+ * Scrollable list of palette rows. Each row has a swatch strip + name.
+ * Palette panel structure (in order, top to bottom):
+ *   1. Background color swatch + hex readout
+ *   2. Color filter buttons (Saturated / Moody / Warm / Cross Process)
+ *   3. Scrollable palette list
+ *
+ * HTML:
+ *   <div class="panel panel-up align-right" id="panel-palette">
+ *     <!-- Background -->
+ *     <div class="p-sec" style="padding:8px 14px 10px;">
+ *       <div class="p-sec-label" style="margin-bottom:8px;">Background</div>
+ *       <div style="display:flex;align-items:center;gap:10px;">
+ *         <div class="swatch" id="bg-swatch" style="width:32px;height:20px;border-radius:4px;">
+ *           <input type="color" id="bg-color-input" value="#050508">
+ *         </div>
+ *         <span id="bg-color-val" style="font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;">#050508</span>
+ *       </div>
+ *     </div>
+ *     <!-- Filters -->
+ *     <div class="p-sec" style="padding:8px 14px 10px;">
+ *       <div class="p-sec-label" style="margin-bottom:8px;">Filter</div>
+ *       <div class="p-btns two-col">
+ *         <button class="filter-btn" data-filter="saturated">Saturated</button>
+ *         <button class="filter-btn" data-filter="moody">Moody</button>
+ *         <button class="filter-btn" data-filter="warm">Warm</button>
+ *         <button class="filter-btn" data-filter="crossprocess">Cross Process</button>
+ *       </div>
+ *     </div>
+ *     <!-- Palette list -->
+ *     <div class="p-sec" style="padding:8px 0 0;">
+ *       <div class="p-sec-label" style="padding:0 14px 4px;">Palette</div>
+ *       <div id="palette-list"><!-- populated by JS --></div>
+ *     </div>
+ *   </div>
+ *
+ * Filter behavior: clicking an active filter-btn deactivates it (toggle).
+ * Palette rows are built from a PALETTES array in JS and appended to #palette-list.
+ */
+#panel-palette {
+  min-width: 210px;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  padding: 4px 0;
+}
+
+/* Each palette row */
+.palette-row { display: flex; align-items: center; gap: 10px; padding: 5px 14px; cursor: pointer; transition: background 0.12s; }
+.palette-row:hover  { background: rgba(255,255,255,0.07); }
+.palette-row.active { background: rgba(255,255,255,0.13); }
+
+/* Fixed-width swatch strip — all rows same width regardless of color count */
+.palette-swatches { display: flex; gap: 1px; flex-shrink: 0; width: 88px; }
+.palette-swatch   { flex: 1; height: 13px; border-radius: 1px; min-width: 0; }
+
+.palette-name { font-size: 12px; color: var(--text-hi); white-space: nowrap; }
+
+/*
+ * Color filter presets — applied as canvas CSS filter after all other effects.
+ * Defined as a JS constant:
+ *
+ *   const FILTER_CSS = {
+ *     saturated:    'saturate(2.2) contrast(1.1)',
+ *     moody:        'contrast(1.3) saturate(0.4) brightness(0.82)',
+ *     warm:         'sepia(0.4) saturate(1.5) brightness(1.06) contrast(1.05)',
+ *     crossprocess: 'contrast(1.5) saturate(2.5) hue-rotate(-25deg) brightness(0.9)',
+ *   };
+ *
+ * Applied by snapshotting fxCanvas, clearing, setting ctx.filter, redrawing snapshot.
+ * .filter-btn shares styles with .p-btns button (active state identical).
+ */
+
+
+/* ── Range sliders ──────────────────────────────────────────────────────────── */
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  height: 28px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 24px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.82);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+  transition: background 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { background: rgba(255,255,255,0.96); }
+input[type=range]::-moz-range-thumb {
+  width: 14px; height: 24px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.82);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+}
+input[type=range]::-moz-range-track {
+  height: 20px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 10px;
+}
+
+
+/* ── Vertical slider ────────────────────────────────────────────────────────── */
+/*
+ * Use inside a .tb-icon-pill panel for a compact zoom/level control.
+ *
+ * HTML:
+ *   <div class="v-slider-wrap">
+ *     <span class="ctrl-lbl-sm">Zoom</span>
+ *     <input type="range" min="0.1" max="10" step="0.1" value="1">
+ *     <span class="ctrl-val">1.0</span>
+ *   </div>
+ */
+.v-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.v-slider-wrap input[type=range] {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 84px;
+  width: 20px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.06);
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  cursor: pointer;
+  outline: none;
+}
+.v-slider-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px; height: 22px;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.82);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+}
+.v-slider-wrap input[type=range]::-moz-range-thumb {
+  width: 10px; height: 22px;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.82);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+}
+/* Flat readout inside vertical slider wrap */
+.v-slider-wrap .ctrl-val {
+  font-size: 11px;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+
+/* ── Value readout ──────────────────────────────────────────────────────────── */
+/*
+ * Default: pill variant used in panel contexts (e.g. effects sliders).
+ * Inside .bb-ctrl the pill is stripped back to a flat inline readout.
+ *
+ * HTML (panel context):
+ *   <span class="ctrl-val" id="val-bloom">1.00</span>
+ *
+ * HTML (bottom bar context — flat):
+ *   <div class="bb-ctrl">
+ *     ...
+ *     <span class="ctrl-val" id="val-exposure">1.50</span>
+ *   </div>
+ */
+.ctrl-val {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 42px;
+  text-align: center;
+}
+
+/* Flat variant inside bottom bar slider groups */
+.bb-ctrl .ctrl-val {
+  font-size: 11px;
+  color: var(--text-mid);
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+
+/* ── Bottom bar ─────────────────────────────────────────────────────────────── */
+/*
+ * Centered floating pill at the bottom.
+ * Controls are inline, grouped visually by .bb-sep dividers.
+ * On desktop: single row. On mobile (≤1080px): grid layout (see Mobile section).
+ *
+ * HTML:
+ *   <div id="bottom-bar">
+ *     <div class="pill bb-pill">
+ *       <button class="tool-btn" id="upload-btn">
+ *         <span class="ico"><i data-lucide="upload" width="15" height="15" stroke-width="1.5"></i></span>
+ *         Upload
+ *       </button>
+ *
+ *       <div class="bb-sep"></div>
+ *
+ *       <!-- Panel-opening group -->
+ *       <div class="bb-group ctrl-wrap">
+ *         <button class="tool-btn" id="btn-palette">
+ *           <span class="ico"><i data-lucide="palette" width="15" height="15" stroke-width="1.5"></i></span>
+ *           Palette
+ *         </button>
+ *         <div class="panel panel-up align-right" id="panel-palette">...</div>
+ *       </div>
+ *
+ *       <div class="bb-sep"></div>
+ *
+ *       <!-- Slider control -->
+ *       <div class="bb-ctrl">
+ *         <span class="ctrl-lbl">Exposure</span>
+ *         <input type="range" id="sl-exposure" min="0.1" max="3" step="0.05" value="1">
+ *         <span class="ctrl-val" id="val-exposure">1.00</span>
+ *       </div>
+ *     </div>
+ *   </div>
+ *
+ * Ratio wrap (conditionally hidden): use display:contents so children
+ * participate directly in the flex layout:
+ *   <div id="ratio-wrap" style="display:contents">
+ *     <div class="bb-sep"></div>
+ *     <div class="bb-ctrl">...</div>
+ *   </div>
+ */
+#bottom-bar {
+  position: absolute;
+  bottom: var(--toolbar-inset);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+.bb-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--pad-bb-pill-y) var(--pad-bb-pill-x);
+  white-space: nowrap;
+}
+
+/* Slider group */
+.bb-ctrl { display: flex; align-items: center; gap: 6px; }
+.bb-ctrl .ctrl-lbl {
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--text-lo);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bb-ctrl input[type=range] { width: 80px; }
+
+/*
+ * Transparent wrapper: use display:contents to make inner elements
+ * participate directly in the bb-pill flex layout.
+ * Useful for conditionally showing/hiding a group of controls.
+ *
+ * HTML:
+ *   <div class="bb-transparent-wrap" style="display:none">
+ *     <div class="bb-sep"></div>
+ *     <div class="bb-ctrl">...</div>
+ *   </div>
+ *
+ * JS: el.style.display = show ? 'contents' : 'none';
+ */
+.bb-transparent-wrap { display: contents; }
+
+
+/* ── Video loading indicator ────────────────────────────────────────────────── */
+/*
+ * Shown while video frames are being extracted. Toggle display flex/none.
+ *
+ * HTML:
+ *   <div id="video-loading">Extracting frames<span id="video-loading-prog"></span></div>
+ */
+#video-loading {
+  position: absolute;
+  top: var(--toolbar-inset); left: 50%; transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  padding: 8px 18px;
+  background: var(--panel);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-mid);
+  z-index: 20;
+  white-space: nowrap;
+}
+
+
+/* ── Recording indicator ────────────────────────────────────────────────────── */
+/*
+ * Shown during video export. Toggle .visible to show/hide.
+ *
+ * HTML:
+ *   <div id="rec-indicator">
+ *     <div id="rec-dot"></div>
+ *     <span id="rec-label">Rendering 42%</span>
+ *   </div>
+ */
+#rec-indicator {
+  position: absolute;
+  top: var(--toolbar-inset); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  background: rgba(200, 50, 50, 0.9);
+  border-radius: 8px;
+  font-size: 12px; font-weight: 300;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 20;
+}
+#rec-indicator.visible { opacity: 1; }
+#rec-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+
+/* ── Tool-specific button states ────────────────────────────────────────────── */
+/*
+ * Video play button — JS adds/removes .playing while preview is playing.
+ * JS: btn.classList.toggle('playing')
+ */
+#btn-video-play.playing { background: var(--accent-bg); color: var(--accent); }
+
+/*
+ * Palette and dither buttons have a swatch strip that needs slightly more room.
+ */
+#btn-palette,
+#btn-dither { gap: 6px; padding: 5px 10px; }
+
+
+/* ── Mobile (≤1080px) ───────────────────────────────────────────────────────── */
+/*
+ * Bottom bar becomes a 2-row layout:
+ *   Row 1 (order:1): action buttons — Upload, Palette, Dither, Effects (4 equal columns)
+ *   Row 2 (order:2): slider controls — Exposure, Cell, Spacing, Ratio (4 equal columns)
+ *
+ * Panels become full-width and anchor to the top of #bottom-bar.
+ * ctrl-wrap loses position:relative so panels use #bottom-bar as their containing block.
+ *
+ * Toolbar title is hidden to save space.
+ */
+@media (max-width: 1080px) {
+  #bottom-bar {
+    left: 12px; right: 12px;
+    transform: none;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bb-pill {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    white-space: normal;
+  }
+  .bb-sep { display: none; }
+
+  /* Row 1: buttons — 4 equal */
+  .bb-pill > .tool-btn { order: 1; flex: 1 1 calc(25% - 5px); min-width: 0; justify-content: center; }
+  .bb-group            { order: 1; flex: 1 1 calc(25% - 5px); min-width: 0; }
+  .bb-group .tool-btn  { width: 100%; justify-content: center; }
+
+  /* Row 2: slider controls — equal width */
+  .bb-ctrl             { order: 2; flex: 0 0 calc(25% - 4.5px); min-width: 0; overflow: hidden; }
+  .bb-ctrl .ctrl-lbl   { width: 52px; flex-shrink: 0; text-align: right; }
+  .bb-ctrl .ctrl-val   { width: 28px; flex-shrink: 0; text-align: right; }
+  .bb-ctrl input[type=range] { flex: 1; min-width: 0; width: auto; }
+
+  /* Panels: full-width, anchored above bottom bar */
+  #bottom-bar .ctrl-wrap { position: static; }
+  #bottom-bar .panel {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 100%;
+    top: auto;
+    min-width: unset;
+    width: auto;
+    margin-bottom: 10px;
+    transform: none;
+    max-width: none;
+  }
+
+  #toolbar { gap: 4px; padding: 0 10px; }
+  .toolbar-title { display: none; }
+  .tb-center, .tb-right { gap: 4px; }
+}
+
+/* 2-column slider row below 640px */
+@media (max-width: 640px) {
+  .bb-ctrl { flex: 0 0 calc(50% - 3px); }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SIDEBAR LAYOUT
+   Left-panel controls, right-side canvas. Use class="sidebar-app" on <body>.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+body.sidebar-app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Left sidebar panel ── */
+#sidebar {
+  width: var(--sb-width);
+  min-width: var(--sb-width);
+  flex-shrink: 0;
+  margin: 10px;
+  height: calc(100vh - 20px);
+  background: var(--sb-bg);
+  border: 1px solid var(--sb-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10;
+}
+
+/* ── Right canvas area ── */
+#canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  cursor: grab;
+}
+#canvas-area.dragging { cursor: grabbing; }
+
+#canvas-area canvas,
+#canvas-area #fx-canvas,
+#canvas-area #three-canvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Sidebar top bar (camla.tools/[tool] + status icons) ── */
+/* Matches the homepage .hp-top exactly: DM Mono + pf-pixelscript, terminal green. */
+.hp-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 14px;
+  flex-shrink: 0;
+  font-size: 11px;
+  flex-wrap: wrap;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: -0.03em;
+  color: #078e00;
+}
+.hp-top .hp-logo {
+  display: block;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: inherit;
+}
+.hp-top .hp-logo .pixel { font-family: "pf-pixelscript", sans-serif; font-size: 13px; }
+.hp-top .hp-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hp-top .hp-icons svg { width: 12px; height: 12px; stroke: #078e00; }
+
+/* ── Sidebar toolbar (logo + title row) ── */
+.sb-toolbar {
+  display: flex;
+  align-items: center;
+  padding: var(--sb-space-2xl) var(--sb-space-4xl);
+  border-bottom: 1px solid var(--sb-border-subtle);
+  flex-shrink: 0;
+  gap: var(--sb-gap-md);
+}
+.sb-toolbar a {
+  display: flex; align-items: center; gap: var(--sb-gap-md);
+  text-decoration: none; color: inherit;
+}
+.sb-toolbar .toolbar-logo  { width: var(--sb-icon); height: var(--sb-icon); }
+.sb-toolbar .toolbar-title { font-size: var(--sb-font-sm); font-weight: 300; color: var(--sb-text-mid); }
+
+/* ── Scrollable body inside sidebar ── */
+.sb-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-line) transparent;
+}
+
+/* ── Upload zones ── */
+.sb-upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--sb-space-2xl) var(--sb-space-3xl) var(--sb-space-2xs);
+  padding: var(--sb-space-xl) var(--sb-space-3xl);
+  border: 1px dashed var(--sb-line-dashed);
+  border-radius: var(--sb-radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+.sb-upload:hover {
+  border-color: var(--sb-line-strong);
+  background: var(--sb-surface-1);
+}
+.sb-upload-name { font-size: var(--sb-font-sm); color: var(--sb-text-mid); }
+.sb-upload-hint { font-size: var(--sb-font-2xs); color: var(--sb-text-lo); margin-top: var(--sb-space-2xs); }
+.sb-upload-kbd {
+  font-size: var(--sb-font-2xs); color: var(--sb-text-lo);
+  background: var(--sb-surface-4);
+  border: 1px solid var(--sb-line);
+  border-radius: var(--sb-radius-xs); padding: var(--sb-space-2xs) var(--sb-space); white-space: nowrap;
+}
+
+/* ── Collapsible section ── */
+.sb-section { border-top: 1px solid var(--sb-border-subtle); }
+.sb-section:first-child { border-top: none; }
+
+.sb-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sb-space-md) var(--sb-space-5xl);
+  cursor: pointer; user-select: none;
+}
+.sb-section-title {
+  font-size: var(--sb-font-2xs); color: var(--sb-text-lo);
+  text-transform: uppercase; letter-spacing: 0.07em; font-weight: 300;
+}
+.sb-section-toggle { font-size: var(--sb-font-md); color: var(--sb-text-lo); line-height: 1; }
+.sb-section.collapsed .sb-section-body { display: none; }
+
+.sb-section-body {
+  padding: var(--sb-space-lg) 0;
+}
+
+/* ── Slider row ── */
+.sb-ctrl {
+  display: flex; align-items: center;
+  padding: var(--sb-space) var(--sb-space-5xl); gap: var(--sb-gap-md);
+}
+.sb-ctrl-lbl { font-size: var(--sb-font-xs); color: var(--sb-text-mid); flex: 1; min-width: 0; }
+
+/* Slider look is scoped to #sidebar so it doesn't affect toolbar/bottom-bar
+ * sliders elsewhere, which share the global input[type=range] rule. */
+.sb-ctrl input[type=range] { flex: 1; min-width: 50px; max-width: 100px; }
+#sidebar input[type=range] {
+  height: var(--sb-slider-h);
+  background: var(--sb-slider-track-bg);
+  border-radius: var(--sb-slider-track-radius);
+  border: 1px solid var(--sb-slider-track-border);
+}
+#sidebar input[type=range]::-webkit-slider-thumb {
+  width: var(--sb-slider-thumb-w);
+  height: var(--sb-slider-thumb-h);
+  border-radius: var(--sb-slider-thumb-radius);
+  background: var(--sb-slider-thumb-bg);
+}
+#sidebar input[type=range]::-webkit-slider-thumb:hover { background: var(--sb-slider-thumb-bg-hover); }
+#sidebar input[type=range]::-moz-range-thumb {
+  width: var(--sb-slider-thumb-w);
+  height: var(--sb-slider-thumb-h);
+  border-radius: var(--sb-slider-thumb-radius);
+  background: var(--sb-slider-thumb-bg);
+}
+#sidebar input[type=range]::-moz-range-track {
+  height: var(--sb-slider-h);
+  background: var(--sb-slider-track-bg);
+  border-radius: var(--sb-slider-track-radius);
+}
+.sb-ctrl .sb-val {
+  font-size: var(--sb-font-xs); color: var(--sb-text-mid);
+  font-variant-numeric: tabular-nums;
+  min-width: 34px; text-align: right;
+}
+
+/* ── Text input ── */
+.sb-input-row { padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-space-lg); }
+.sb-input-lbl {
+  font-size: var(--sb-font-2xs); color: var(--sb-text-lo);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--sb-space-sm);
+}
+.sb-input {
+  width: 100%;
+  background: var(--sb-surface-3);
+  border: 1px solid var(--sb-line);
+  border-radius: var(--sb-radius);
+  color: var(--sb-text-hi);
+  font-family: inherit; font-size: var(--sb-font-sm);
+  padding: var(--sb-space) var(--sb-gap-md); outline: none;
+}
+.sb-input:focus { border-color: var(--sb-line-hover); }
+
+/* ── Checkbox (styled as [x] / [ ]) ── */
+.sb-check {
+  display: flex; align-items: center; gap: var(--sb-gap-md);
+  padding: var(--sb-space) var(--sb-space-5xl); cursor: pointer; user-select: none;
+}
+.sb-check-indicator {
+  font-size: var(--sb-font-xs); color: var(--sb-text-lo);
+  font-family: monospace; width: var(--sb-icon); flex-shrink: 0;
+}
+.sb-check.checked .sb-check-indicator { color: var(--sb-accent); }
+.sb-check-lbl { font-size: var(--sb-font-sm); color: var(--sb-text-mid); }
+.sb-check.checked .sb-check-lbl { color: var(--sb-text-hi); }
+
+/* ── Segmented toggle row ── */
+.sb-toggle-row {
+  display: flex; align-items: center;
+  padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-gap);
+  gap: var(--sb-gap);
+}
+.sb-toggle-lbl { font-size: var(--sb-font-xs); color: var(--sb-text-mid); flex: 1; }
+.sb-toggle-group { display: flex; gap: var(--sb-gap-xs); }
+.sb-toggle-btn {
+  padding: var(--sb-gap-xs) var(--sb-gap-md);
+  border: 1px solid var(--sb-line);
+  background: transparent;
+  color: var(--sb-text-lo);
+  font-family: inherit; font-size: var(--sb-font-xs);
+  border-radius: var(--sb-radius-xs); cursor: pointer;
+  transition: all 0.12s;
+}
+.sb-toggle-btn:hover { color: var(--sb-text-mid); border-color: var(--sb-line-hover); }
+.sb-toggle-btn.active {
+  background: var(--sb-surface-5);
+  color: var(--sb-text-hi);
+  border-color: var(--sb-line-hover);
+}
+
+/* ── Button grid (for palette, dither mode, etc.) ── */
+.sb-btn-grid {
+  display: flex; flex-wrap: wrap; gap: var(--sb-gap-sm);
+  padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-space-lg);
+}
+.sb-btn {
+  padding: var(--sb-gap-sm) var(--sb-gap-md);
+  border: 1px solid var(--sb-line);
+  background: var(--sb-surface-2);
+  color: var(--sb-text-mid);
+  font-family: inherit; font-size: var(--sb-font-xs);
+  border-radius: var(--sb-radius-sm); cursor: pointer;
+  transition: all 0.12s;
+}
+.sb-btn:hover { background: var(--sb-bg-hover); color: var(--sb-text-hi); }
+.sb-btn.active {
+  background: var(--sb-accent-bg);
+  border-color: var(--sb-accent);
+  color: var(--sb-accent);
+}
+
+/* ── Color swatch row in sidebar ── */
+.sb-color-row {
+  display: flex; align-items: center; gap: var(--sb-gap-md);
+  padding: var(--sb-space) var(--sb-space-5xl);
+}
+.sb-color-lbl { font-size: var(--sb-font-xs); color: var(--sb-text-mid); flex: 1; }
+
+/* ── Sidebar footer (export button area) ── */
+.sb-footer {
+  padding: var(--sb-space-2xl) var(--sb-space-3xl) var(--sb-space-4xl);
+  border-top: 1px solid var(--sb-border-subtle);
+  flex-shrink: 0;
+}
+.sb-export-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sb-space-xl) var(--sb-space-5xl);
+  background: var(--bg); color: var(--sb-text-hi);
+  border: var(--sb-border) solid 1px; border-radius: var(--sb-radius-sm);
+  font-family: inherit; font-size: var(--sb-font-sm); font-weight: 500;
+  cursor: pointer; transition: background 0.15s;
+}
+.sb-export-btn:hover { background: var(--sb-bg-hover); }
+.sb-export-btn .sb-kbd { opacity: 0.4; font-weight: 400; font-size: var(--sb-font-2xs); }
+
+/* ── Horizontal divider inside sidebar ── */
+.sb-divider { height: 1px; background: var(--sb-border-subtle); margin: var(--sb-space-sm) 0; }
+
+/* ── Upload overlay inside canvas-area ── */
+.sidebar-app #upload-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px;
+  color: var(--text-lo); font-size: 13px;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+.sidebar-app #upload-overlay svg { width: 40px; height: 40px; stroke-width: 1.5; }
+.sidebar-app #upload-overlay.drag-over { color: var(--accent); }
+.sidebar-app #upload-overlay.hidden { display: none; }
+
+/* ── ASCII text output area ── */
+#ascii-output {
+  position: absolute; inset: 0;
+  overflow: auto;
+  font-family: monospace;
+  white-space: pre;
+  line-height: 1.15;
+  padding: 16px;
+  color: var(--text-hi);
+  background: var(--bg);
+  font-size: 8px;
+  display: none;
+}
+#ascii-output.visible { display: block; }

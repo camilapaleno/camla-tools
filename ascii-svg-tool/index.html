@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII SVG Tool</title>
+  <link rel="icon" type="image/svg+xml" href="c-tools.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    #canvas-area { position: relative; flex: 1; background: #050508; overflow: hidden; }
+    #canvas-area #three-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #canvas-area #ascii-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+    #upload-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; color: var(--text-lo); font-size: 13px;
+      pointer-events: none;
+    }
+    #upload-overlay.hidden { display: none; }
+
+    #rec-indicator {
+      position: absolute; top: 16px; right: 16px;
+      display: none; align-items: center; gap: 6px;
+      background: rgba(0,0,0,0.6); border: 1px solid rgba(255,80,80,0.4);
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; color: #ff6060; z-index: 20;
+    }
+    #rec-indicator.visible { display: flex; }
+    #rec-dot { width: 6px; height: 6px; background: #ff3333; border-radius: 50%; animation: blink 1s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    #shape-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; }
+    .shape-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px 3px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 7px; cursor: pointer;
+      color: var(--text-mid); font-family: inherit;
+      font-size: 9px; font-weight: 300; text-transform: uppercase;
+      transition: all 0.12s;
+    }
+    .shape-btn:hover { background: var(--panel-hover); color: var(--text-hi); border-color: var(--border-hi); }
+    .shape-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+    .shape-btn svg { width: 28px; height: 28px; }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/ascii-svg-tool</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+  <div class="sb-body">
+
+    <!-- Upload -->
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload SVG</div>
+        <div class="sb-upload-hint">.svg</div>
+      </div>
+      <input type="file" id="file-input" accept=".svg,image/svg+xml" style="display:none">
+    </div>
+
+    <!-- Shapes -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="shapes">
+        <span class="sb-section-title">Shapes</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div id="shape-grid"></div>
+      </div>
+    </div>
+
+    <!-- 3D / Material -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="3d">
+        <span class="sb-section-title">3D / Material</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Depth</span><input type="range" id="sl-depth" min="0.05" max="1" step="0.05" value="0.05"><span class="sb-val" id="vl-depth">0.05</span></div>
+        <div class="sb-toggle-row"><div class="sb-toggle-group" id="mat-type-btns">
+          <button class="sb-toggle-btn" data-mat="metal">Metal</button>
+          <button class="sb-toggle-btn active" data-mat="wireframe">Wire</button>
+          <button class="sb-toggle-btn" data-mat="flat">Flat</button>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- Colors -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="colors">
+        <span class="sb-section-title">Colors</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-color-row">
+          <span class="sb-color-lbl">Base</span>
+          <div class="swatch" id="sw-color" style="background:#ff0000"><input type="color" id="pk-color" value="#ff0000"></div>
+        </div>
+        <div class="sb-color-row">
+          <span class="sb-color-lbl">Background</span>
+          <div class="swatch" id="sw-bg" style="background:#050508"><input type="color" id="pk-bg" value="#050508"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASCII / Dither -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="dither">
+        <span class="sb-section-title">ASCII / Dither</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-btn-grid" id="dither-mode-btns">
+          <button class="sb-btn" data-mode="off">Off</button>
+          <button class="sb-btn" data-mode="ascii">ASCII</button>
+          <button class="sb-btn" data-mode="blocks">Blocks</button>
+          <button class="sb-btn" data-mode="lines">Lines</button>
+          <button class="sb-btn" data-mode="circles">Circles</button>
+          <button class="sb-btn" data-mode="crosses">Crosses</button>
+          <button class="sb-btn active" data-mode="dots">Dots</button>
+          <button class="sb-btn" data-mode="slashes">Slashes</button>
+          <button class="sb-btn" data-mode="hearts">Hearts</button>
+          <button class="sb-btn" data-mode="stars">Stars</button>
+          <button class="sb-btn" data-mode="symbols">Symbols</button>
+          <button class="sb-btn" data-mode="diamonds">Diamonds</button>
+        </div>
+        <div id="dither-extra">
+          <div class="sb-ctrl"><span class="sb-ctrl-lbl">Size</span><input type="range" id="sl-cell" min="2" max="24" step="1" value="6"><span class="sb-val" id="vl-cell">6</span></div>
+          <div class="sb-ctrl"><span class="sb-ctrl-lbl">Threshold</span><input type="range" id="sl-dthresh" min="0.01" max="0.99" step="0.01" value="0.01"><span class="sb-val" id="vl-dthresh">0.01</span></div>
+          <div class="sb-ctrl"><span class="sb-ctrl-lbl">Glow</span><input type="range" id="sl-dglow" min="0" max="1" step="0.01" value="1.00"><span class="sb-val" id="vl-dglow">1.00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rotation -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="rotation">
+        <span class="sb-section-title">Rotation</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-toggle-row"><div class="sb-toggle-group">
+          <button class="sb-toggle-btn active" id="autorot-on">On</button>
+          <button class="sb-toggle-btn" id="autorot-off">Off</button>
+        </div></div>
+        <div class="sb-toggle-row"><div class="sb-toggle-group" id="rotate-axis-btns">
+          <button class="sb-toggle-btn active" data-axis="horizontal">H</button>
+          <button class="sb-toggle-btn" data-axis="vertical">V</button>
+          <button class="sb-toggle-btn" data-axis="free">Free</button>
+          <button class="sb-toggle-btn" data-axis="roll">Roll</button>
+        </div></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Speed</span><input type="range" id="sl-speed" min="0.1" max="5" step="0.1" value="2.0"><span class="sb-val" id="vl-speed">2.0</span></div>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="export">
+        <span class="sb-section-title">Export</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-btn-grid">
+          <button class="sb-btn" id="export-png">PNG</button>
+          <button class="sb-btn" id="export-png-transparent">Transparent</button>
+        </div>
+        <div class="sb-btn-grid">
+          <button class="sb-btn vid-btn" data-dur="3">3s</button>
+          <button class="sb-btn vid-btn" data-dur="5">5s</button>
+          <button class="sb-btn vid-btn" data-dur="10">10s</button>
+          <button class="sb-btn vid-btn" data-dur="30">30s</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="canvas-area">
+  <canvas id="three-canvas"></canvas>
+  <canvas id="ascii-canvas"></canvas>
+  <div id="upload-overlay">
+    <i data-lucide="box-select" width="40" height="40" stroke-width="1"></i>
+    pick a shape or upload an SVG
+  </div>
+  <div id="rec-indicator"><div id="rec-dot"></div><span>REC</span></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls }     from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer }    from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }        from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js';
+import { SVGLoader }         from 'three/addons/loaders/SVGLoader.js';
+import { RoomEnvironment }   from 'three/addons/environments/RoomEnvironment.js';
+
+const ICON_DEFS = [
+  { id: 'icon0', label: 'Star',      file: 'icons/star-iconsArtboard 1.svg' },
+  { id: 'icon1', label: 'Crescent',  file: 'icons/star-iconsArtboard 1_1.svg' },
+  { id: 'icon2', label: 'Ring',      file: 'icons/star-iconsArtboard 1_2.svg' },
+  { id: 'icon3', label: 'Organic',   file: 'icons/star-iconsArtboard 1_4.svg' },
+  { id: 'icon4', label: '6-Star',    file: 'icons/star-iconsArtboard 1_5.svg' },
+  { id: 'icon5', label: 'Arrow',     file: 'icons/star-iconsArtboard 2.svg' },
+  { id: 'icon6', label: 'Waves',     file: 'icons/star-iconsArtboard 2_2.svg' },
+  { id: 'icon7', label: '4-Star',    file: 'icons/star-iconsArtboard 2_3.svg' },
+  { id: 'icon8', label: 'Flowing',   file: 'icons/star-iconsArtboard 2_4.svg' },
+  { id: 'icon9', label: 'Starburst', file: 'icons/star-iconsArtboard 2_5.svg' },
+];
+
+const loadedIcons = {};
+
+function svgTextToShapes(text) {
+  const data = svgLoader.parse(text);
+  const shapes = [];
+  for (const path of data.paths) shapes.push(...SVGLoader.createShapes(path));
+  return shapes;
+}
+
+function svgTextToThumb(text) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const svgEl = doc.querySelector('svg');
+  if (!svgEl) return '';
+  svgEl.querySelectorAll('style').forEach(s => s.remove());
+  svgEl.querySelectorAll('path, polygon, circle, rect, ellipse').forEach(el => {
+    el.removeAttribute('fill'); el.removeAttribute('style');
+    el.setAttribute('fill', 'currentColor');
+  });
+  const vb = svgEl.getAttribute('viewBox') || '0 0 1080 1080';
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg">${svgEl.innerHTML}</svg>`;
+}
+
+const state = {
+  currentShape: null, depth: 0.05, materialType: 'wireframe',
+  color: '#ff0000', bgColor: '#050508',
+  autoRotate: true, rotateSpeed: 2.0, rotateAxis: 'horizontal',
+  ditherMode: 'dots', ditherCell: 6, ditherThreshold: 0.01, ditherGlow: 1.0,
+};
+
+const canvasArea = document.getElementById('canvas-area');
+const canvas    = document.getElementById('three-canvas');
+const renderer  = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(canvasArea.clientWidth, canvasArea.clientHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 2.8;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(state.bgColor);
+
+const frustum = 2.8;
+let aspect  = canvasArea.clientWidth / canvasArea.clientHeight;
+const camera  = new THREE.OrthographicCamera(
+  -frustum * aspect, frustum * aspect, frustum, -frustum, 0.01, 100
+);
+camera.position.set(0, 0, 5);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+controls.enableRotate  = false;
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
+
+scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+const keyLight = new THREE.DirectionalLight(0xffffff, 8.0);
+keyLight.position.set(4, 6, 5); scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0xaabbff, 3.5);
+rimLight.position.set(-5, -2, -3); scene.add(rimLight);
+const fillLight = new THREE.PointLight(0xffa060, 2.5, 20);
+fillLight.position.set(3, -3, 2); scene.add(fillLight);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new OutputPass());
+
+let currentMesh = null, currentShapes = null, normScale = 1;
+const svgLoader = new SVGLoader();
+
+function computeNormScale(shapes) {
+  const testGeo = new THREE.ExtrudeGeometry(shapes, { depth: 1, bevelEnabled: false });
+  testGeo.center();
+  const box = new THREE.Box3().setFromBufferAttribute(testGeo.attributes.position);
+  const size = new THREE.Vector3(); box.getSize(size); testGeo.dispose();
+  return 2.0 / Math.max(size.x, size.y, 0.001);
+}
+
+function createMaterial() {
+  const col = new THREE.Color(state.color);
+  switch (state.materialType) {
+    case 'metal': return new THREE.MeshStandardMaterial({ color: col, metalness: 1.0, roughness: 0.20, side: THREE.DoubleSide });
+    case 'wireframe': return new THREE.MeshBasicMaterial({ color: col, wireframe: true });
+    case 'flat': return new THREE.MeshLambertMaterial({ color: col, flatShading: true, side: THREE.DoubleSide });
+    default: return new THREE.MeshStandardMaterial({ color: col, side: THREE.DoubleSide });
+  }
+}
+
+function buildMesh(shapes) {
+  currentShapes = shapes; normScale = computeNormScale(shapes); rebuildGeometry();
+}
+
+function rebuildGeometry() {
+  if (!currentShapes) return;
+  const ns = normScale, rimBevel = 0.018 / ns;
+  const geo = new THREE.ExtrudeGeometry(currentShapes, {
+    depth: state.depth / ns, bevelEnabled: true,
+    bevelThickness: rimBevel, bevelSize: rimBevel * 0.8,
+    bevelSegments: 3, steps: 1,
+  });
+  geo.center(); geo.scale(ns, ns, ns); geo.computeVertexNormals();
+  if (currentMesh) {
+    currentMesh.geometry.dispose(); currentMesh.geometry = geo;
+  } else {
+    currentMesh = new THREE.Mesh(geo, createMaterial());
+    currentMesh.scale.y = -1; scene.add(currentMesh);
+  }
+  document.getElementById('upload-overlay').classList.add('hidden');
+}
+
+function updateMaterial() {
+  if (!currentMesh) return;
+  currentMesh.material.dispose(); currentMesh.material = createMaterial();
+}
+
+async function loadShapeById(id) {
+  const def = ICON_DEFS.find(d => d.id === id);
+  if (!def) return;
+  state.currentShape = id;
+  document.querySelectorAll('.shape-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.shape === id)
+  );
+  if (!loadedIcons[id]) {
+    try {
+      const text = await fetch(def.file).then(r => r.text());
+      loadedIcons[id] = { shapes: svgTextToShapes(text) };
+    } catch (e) { console.error('Failed to load shape:', def.file, e); return; }
+  }
+  buildMesh(loadedIcons[id].shapes);
+}
+
+function buildShapeGrid() {
+  const grid = document.getElementById('shape-grid');
+  grid.innerHTML = '';
+  ICON_DEFS.forEach(def => {
+    const btn = document.createElement('button');
+    btn.className = 'shape-btn'; btn.dataset.shape = def.id;
+    btn.innerHTML = `<svg viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg"></svg><span>${def.label}</span>`;
+    btn.addEventListener('click', () => loadShapeById(def.id));
+    grid.appendChild(btn);
+    fetch(def.file).then(r => r.text()).then(text => {
+      btn.innerHTML = `${svgTextToThumb(text)}<span>${def.label}</span>`;
+      if (!loadedIcons[def.id]) loadedIcons[def.id] = { shapes: svgTextToShapes(text) };
+    }).catch(err => console.warn('Failed to load icon:', def.file, err));
+  });
+}
+
+function closeAllPanels() {}
+
+document.querySelectorAll('.sb-section-header').forEach(h => {
+  h.addEventListener('click', () => {
+    const section = h.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    const tog = h.querySelector('.sb-section-toggle');
+    if (tog) tog.textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+const asciiCanvas = document.getElementById('ascii-canvas');
+const asciiCtx    = asciiCanvas.getContext('2d');
+const readCanvas  = document.createElement('canvas');
+const readCtx     = readCanvas.getContext('2d', { willReadFrequently: true });
+
+function syncAsciiSize() {
+  asciiCanvas.width  = canvas.width;  asciiCanvas.height = canvas.height;
+  readCanvas.width   = canvas.width;  readCanvas.height  = canvas.height;
+}
+syncAsciiSize();
+
+function downloadPNG(transparent = false) {
+  const prevBg = scene.background;
+  if (transparent) scene.background = null;
+  composer.render();
+  if (state.ditherMode !== 'off') applyDither();
+  else if (state.ditherGlow > 0) { asciiCtx.clearRect(0,0,canvas.width,canvas.height); applyGlow(canvas,canvas.width,canvas.height); }
+  const out = document.createElement('canvas');
+  out.width = canvas.width; out.height = canvas.height;
+  const ctx = out.getContext('2d');
+  ctx.drawImage(canvas, 0, 0); ctx.drawImage(asciiCanvas, 0, 0);
+  const link = document.createElement('a');
+  link.download = '3d-icon.png'; link.href = out.toDataURL('image/png'); link.click();
+  if (transparent) scene.background = prevBg;
+}
+
+let mediaRec = null;
+function recordVideo(seconds) {
+  if (mediaRec) return;
+  const stream = canvas.captureStream(60);
+  mediaRec = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  const chunks = [];
+  mediaRec.ondataavailable = e => chunks.push(e.data);
+  mediaRec.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = '3d-icon.webm'; a.click();
+    mediaRec = null;
+  };
+  mediaRec.start();
+  document.getElementById('rec-indicator').classList.add('visible');
+  setTimeout(() => { mediaRec.stop(); document.getElementById('rec-indicator').classList.remove('visible'); }, seconds * 1000);
+}
+
+const ASCII_RAMP = ' .`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+
+function applyDither() {
+  const W = canvas.width, H = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  const cs  = Math.round(state.ditherCell * dpr);
+  readCtx.drawImage(canvas, 0, 0, W, H);
+  const srcPx = readCtx.getImageData(0, 0, W, H).data;
+  const brightness = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const r = srcPx[i*4], g = srcPx[i*4+1], b = srcPx[i*4+2];
+    brightness[i] = (0.299*r + 0.587*g + 0.114*b) / 255;
+  }
+  asciiCtx.clearRect(0, 0, W, H);
+  asciiCtx.fillStyle = state.bgColor; asciiCtx.fillRect(0, 0, W, H);
+  asciiCtx.fillStyle = asciiCtx.strokeStyle = state.color;
+  if (state.ditherMode === 'ascii') {
+    asciiCtx.font = `${cs}px monospace`; asciiCtx.textAlign = 'center'; asciiCtx.textBaseline = 'middle';
+  }
+  const lo = state.ditherThreshold;
+  for (let cy = 0; cy < H; cy += cs) {
+    for (let cx = 0; cx < W; cx += cs) {
+      const px = Math.min(cx + Math.floor(cs/2), W-1);
+      const py = Math.min(cy + Math.floor(cs/2), H-1);
+      const br = brightness[py * W + px];
+      if (br < lo) continue;
+      const norm = Math.min(1, (br - lo) / (1 - lo));
+      if (norm <= 0) continue;
+      const midX = cx + cs/2, midY = cy + cs/2;
+      switch (state.ditherMode) {
+        case 'ascii': { const idx = Math.floor(norm*(ASCII_RAMP.length-1)); asciiCtx.fillText(ASCII_RAMP[idx], midX, midY); break; }
+        case 'blocks': { const sz=norm*cs; asciiCtx.fillRect(midX-sz/2,midY-sz/2,sz,sz); break; }
+        case 'lines': { const h=Math.max(1,norm*cs); asciiCtx.fillRect(cx,midY-h/2,cs,h); break; }
+        case 'circles': { asciiCtx.beginPath(); asciiCtx.arc(midX,midY,norm*cs/2,0,Math.PI*2); asciiCtx.fill(); break; }
+        case 'crosses': { const arm=norm*cs/2,t=Math.max(1,cs*0.2); asciiCtx.fillRect(midX-arm,midY-t/2,arm*2,t); asciiCtx.fillRect(midX-t/2,midY-arm,t,arm*2); break; }
+        case 'dots': {
+          const count=Math.round(norm*9),order=[4,1,3,5,7,0,2,6,8],sub=cs/3;
+          for(let d=0;d<count;d++){const pos=order[d];asciiCtx.fillRect(cx+(pos%3)*sub,cy+Math.floor(pos/3)*sub,sub-0.5,sub-0.5);}
+          break;
+        }
+        case 'slashes': {
+          const count=Math.ceil(norm*3),len=cs*0.75;
+          asciiCtx.strokeStyle=state.color; asciiCtx.lineWidth=Math.max(1,cs*0.13);
+          for(let s=0;s<count;s++){const ox=(s-(count-1)/2)*(cs*0.3);asciiCtx.beginPath();asciiCtx.moveTo(midX+ox-len/2,midY+len/2);asciiCtx.lineTo(midX+ox+len/2,midY-len/2);asciiCtx.stroke();}
+          break;
+        }
+        case 'hearts': { const s=norm*cs*0.46; if(s<0.5)break; asciiCtx.beginPath(); asciiCtx.moveTo(midX,midY+s); asciiCtx.bezierCurveTo(midX-s*1.1,midY,midX-s*1.1,midY-s*0.85,midX,midY-s*0.35); asciiCtx.bezierCurveTo(midX+s*1.1,midY-s*0.85,midX+s*1.1,midY,midX,midY+s); asciiCtx.fill(); break; }
+        case 'stars': {
+          const rOut=norm*cs*0.48,rIn=rOut*0.4; if(rOut<0.5)break; asciiCtx.beginPath();
+          for(let pt=0;pt<10;pt++){const ang=(pt*Math.PI/5)-Math.PI/2,r=pt%2===0?rOut:rIn,px2=midX+Math.cos(ang)*r,py2=midY+Math.sin(ang)*r;pt===0?asciiCtx.moveTo(px2,py2):asciiCtx.lineTo(px2,py2);}
+          asciiCtx.closePath(); asciiCtx.fill(); break;
+        }
+        case 'symbols': { const S='·∙∘○◦⬡◈✦✧❋★♦♠♣♥◉●'; asciiCtx.font=`${cs}px monospace`; asciiCtx.textAlign='center'; asciiCtx.textBaseline='middle'; asciiCtx.fillText(S[Math.floor(norm*(S.length-1))],midX,midY); break; }
+        case 'diamonds': { const s=norm*cs*0.48; if(s<0.5)break; asciiCtx.beginPath(); asciiCtx.moveTo(midX,midY-s); asciiCtx.lineTo(midX+s*0.6,midY); asciiCtx.lineTo(midX,midY+s); asciiCtx.lineTo(midX-s*0.6,midY); asciiCtx.closePath(); asciiCtx.fill(); break; }
+      }
+    }
+  }
+  if (state.ditherGlow > 0) applyGlow(asciiCanvas, W, H, dpr);
+}
+
+function applyGlow(src, W, H, dpr) {
+  dpr = dpr || window.devicePixelRatio || 1;
+  const snap = document.createElement('canvas'); snap.width=W; snap.height=H; snap.getContext('2d').drawImage(src,0,0);
+  asciiCtx.globalCompositeOperation = 'screen';
+  const tight = document.createElement('canvas'); tight.width=W; tight.height=H;
+  const tc = tight.getContext('2d'); tc.filter=`blur(${state.ditherGlow*6*dpr}px)`; tc.drawImage(snap,0,0);
+  asciiCtx.globalAlpha = Math.min(1, state.ditherGlow*1.4); asciiCtx.drawImage(tight,0,0);
+  const wide = document.createElement('canvas'); wide.width=W; wide.height=H;
+  const wc = wide.getContext('2d'); wc.filter=`blur(${state.ditherGlow*28*dpr}px)`; wc.drawImage(snap,0,0);
+  asciiCtx.globalAlpha = Math.min(1, state.ditherGlow*1.1); asciiCtx.drawImage(wide,0,0);
+  asciiCtx.globalCompositeOperation = 'source-over'; asciiCtx.globalAlpha = 1;
+}
+
+let lastTime = 0;
+function animate(t) {
+  requestAnimationFrame(animate);
+  const dt = (t - lastTime) * 0.001; lastTime = t;
+  if (state.autoRotate && currentMesh) {
+    const s = state.rotateSpeed * dt * 0.8;
+    switch (state.rotateAxis) {
+      case 'horizontal': currentMesh.rotation.y += s; break;
+      case 'vertical':   currentMesh.rotation.x += s; break;
+      case 'roll':       currentMesh.rotation.z += s; break;
+      case 'free': currentMesh.rotation.y += s; currentMesh.rotation.x += s * 0.25; break;
+    }
+  }
+  controls.update(); composer.render();
+  if (state.ditherMode !== 'off') applyDither();
+  else if (state.ditherGlow > 0) { const W=canvas.width,H=canvas.height; asciiCtx.clearRect(0,0,W,H); applyGlow(canvas,W,H); }
+}
+animate(0);
+
+window.addEventListener('resize', () => {
+  const W = canvasArea.clientWidth, H = canvasArea.clientHeight;
+  aspect = W / H;
+  camera.left=-frustum*aspect; camera.right=frustum*aspect;
+  camera.top=frustum; camera.bottom=-frustum;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H); composer.setSize(W, H); syncAsciiSize();
+});
+
+function slider(id, valId, digits, onChange) {
+  const sl = document.getElementById(id), vl = document.getElementById(valId);
+  sl.addEventListener('input', () => { const v=parseFloat(sl.value); vl.textContent=v.toFixed(digits); onChange(v); });
+}
+
+function swatch(swatchId, pickerId, onChange) {
+  const sw=document.getElementById(swatchId), pk=document.getElementById(pickerId);
+  pk.addEventListener('input', () => { sw.style.background=pk.value; onChange(pk.value); });
+}
+
+document.getElementById('upload-btn').addEventListener('click', () => { document.getElementById('file-input').click(); });
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const data = svgLoader.parse(ev.target.result);
+    const shapes = [];
+    for (const path of data.paths) shapes.push(...SVGLoader.createShapes(path));
+    if (shapes.length === 0) { alert('No paths found in SVG.'); return; }
+    state.currentShape = 'custom';
+    document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+    buildMesh(shapes);
+  };
+  reader.readAsText(file); e.target.value = '';
+});
+
+document.getElementById('export-png').addEventListener('click', () => downloadPNG(false));
+document.getElementById('export-png-transparent').addEventListener('click', () => downloadPNG(true));
+document.querySelectorAll('.vid-btn').forEach(btn => {
+  btn.addEventListener('click', () => recordVideo(+btn.dataset.dur));
+});
+
+slider('sl-depth', 'vl-depth', 2, v => { state.depth = v; rebuildGeometry(); });
+
+document.querySelectorAll('#mat-type-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mat-type-btns button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.materialType = btn.dataset.mat; updateMaterial();
+  });
+});
+
+swatch('sw-color', 'pk-color', v => { state.color = v; updateMaterial(); });
+swatch('sw-bg', 'pk-bg', v => { state.bgColor = v; scene.background = new THREE.Color(v); });
+
+document.getElementById('autorot-on').addEventListener('click', () => {
+  state.autoRotate = true;
+  document.getElementById('autorot-on').classList.add('active');
+  document.getElementById('autorot-off').classList.remove('active');
+});
+document.getElementById('autorot-off').addEventListener('click', () => {
+  state.autoRotate = false;
+  document.getElementById('autorot-off').classList.add('active');
+  document.getElementById('autorot-on').classList.remove('active');
+});
+document.querySelectorAll('#rotate-axis-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#rotate-axis-btns button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.rotateAxis = btn.dataset.axis;
+  });
+});
+
+let isDragging = false, dragLast = { x: 0, y: 0 };
+canvas.addEventListener('pointerdown', e => { if(e.button!==0)return; isDragging=true; dragLast={x:e.clientX,y:e.clientY}; });
+canvas.addEventListener('pointermove', e => {
+  if (!isDragging || !currentMesh) return;
+  const dx=e.clientX-dragLast.x, dy=e.clientY-dragLast.y, sens=0.006;
+  switch (state.rotateAxis) {
+    case 'horizontal': currentMesh.rotation.y += dx*sens; break;
+    case 'vertical':   currentMesh.rotation.x += dy*sens; break;
+    case 'roll':       currentMesh.rotation.z += dx*sens; break;
+    case 'free': currentMesh.rotation.y+=dx*sens; currentMesh.rotation.x+=dy*sens; break;
+  }
+  dragLast = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('pointerup', e => { if(e.button===0) isDragging=false; });
+canvas.addEventListener('pointercancel', () => { isDragging=false; });
+
+slider('sl-speed', 'vl-speed', 1, v => { state.rotateSpeed = v; });
+
+document.querySelectorAll('#dither-mode-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#dither-mode-btns button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.ditherMode = btn.dataset.mode;
+  });
+});
+slider('sl-cell', 'vl-cell', 0, v => { state.ditherCell = v; });
+slider('sl-dthresh', 'vl-dthresh', 2, v => { state.ditherThreshold = v; });
+slider('sl-dglow', 'vl-dglow', 2, v => { state.ditherGlow = v; });
+
+buildShapeGrid();
+loadShapeById('icon4');
+lucide.createIcons();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

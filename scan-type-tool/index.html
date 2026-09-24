@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scan Type Tool</title>
+<link rel="icon" type="image/svg+xml" href="c-tools.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&family=Astloch:wght@400;700&family=Gruppo&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Inter+Tight:ital,wght@0,100..900;1,100..900&family=Megrim&family=Poiret+One&family=Quintessential&family=Tsukimi+Rounded:wght@300..900&family=Turret+Road:wght@200;300;400;500;700;800&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="../cam-tools-ui.css">
+<link rel="stylesheet" href="../cam-tools-mobile.css">
+<style>
+  #canvas-area { position: relative; flex: 1; overflow: hidden; cursor: grab; background: var(--bg); }
+  #canvas-area:active { cursor: grabbing; }
+  #three-canvas, #fx-canvas { position: absolute; top:0; left:0; width:100%; height:100%; display:block; }
+  #fx-canvas { pointer-events: none; }
+
+  #text-input {
+    font-weight: 300; letter-spacing: 0.02em;
+  }
+
+  #loading-msg {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; z-index: 10; pointer-events: none;
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-msg p { font-size: 11px; color: var(--text-lo); letter-spacing: 0.04em; }
+
+  #rec-indicator {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: none; flex-direction: column; align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid var(--border-hi);
+    border-radius: 12px; padding: 18px 28px;
+    z-index: 20; pointer-events: none;
+  }
+  .rec-row { display: flex; align-items: center; gap: 8px; }
+  .rec-dot { width: 8px; height: 8px; background: #ff3333; border-radius: 50%; animation: blink 1s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  #rec-label { font-size: 13px; font-weight: 300; color: var(--text-hi); }
+  #rec-progress { font-size: 11px; color: var(--text-lo); }
+
+  .font-btn {
+    width: 100%; text-align: left;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 5px; padding: 6px 10px;
+    color: var(--text-mid); cursor: pointer;
+    font-family: inherit; font-size: 12px;
+    transition: all 0.12s;
+  }
+  .font-btn:hover { background: var(--panel-hover); color: var(--text-hi); }
+  .font-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  #font-list { display: flex; flex-direction: column; gap: 3px; padding: 2px var(--sb-space-5xl) 4px; }
+</style>
+</head>
+<body class="sidebar-app">
+
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/scan-type-tool</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+  <div class="sb-body">
+
+    <!-- Text input (always visible) -->
+    <div class="sb-input-row" style="padding-top:10px;">
+      <input type="text" id="text-input" class="sb-input" value="scan type" autocomplete="off" spellcheck="false" placeholder="type here…">
+    </div>
+
+    <!-- Font -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="font">
+        <span class="sb-section-title">Font</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div id="font-list">
+          <button class="font-btn" data-font="astloch" style="font-family:'Astloch',serif;">Astloch</button>
+          <button class="font-btn" data-font="gruppo" style="font-family:'Gruppo',sans-serif;">Gruppo</button>
+          <button class="font-btn active" data-font="instrument_serif" style="font-family:'Instrument Serif',serif;">Instrument Serif</button>
+          <button class="font-btn" data-font="inter_tight" style="font-family:'Inter Tight',sans-serif;font-weight:100;">Inter Tight</button>
+          <button class="font-btn" data-font="megrim" style="font-family:'Megrim',cursive;">Megrim</button>
+          <button class="font-btn" data-font="poiret_one" style="font-family:'Poiret One',sans-serif;">Poiret One</button>
+          <button class="font-btn" data-font="quintessential" style="font-family:'Quintessential',cursive;">Quintessential</button>
+          <button class="font-btn" data-font="tsukimi_rounded" style="font-family:'Tsukimi Rounded',sans-serif;font-weight:300;">Tsukimi Rounded</button>
+          <button class="font-btn" data-font="turret_road" style="font-family:'Turret Road',monospace;font-weight:200;">Turret Road</button>
+          <button class="font-btn" data-font="unifraktur" style="font-family:'UnifrakturMaguntia',cursive;font-size:14px;">UnifrakturMaguntia</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode / Dither -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="mode">
+        <span class="sb-section-title">Dither Mode</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-btn-grid">
+          <button class="sb-btn dither-btn" data-mode="none">None</button>
+          <button class="sb-btn dither-btn active" data-mode="ascii">ASCII</button>
+          <button class="sb-btn dither-btn" data-mode="blocks">Blocks</button>
+          <button class="sb-btn dither-btn" data-mode="lines">Lines</button>
+          <button class="sb-btn dither-btn" data-mode="circles">Circles</button>
+          <button class="sb-btn dither-btn" data-mode="crosses">Crosses</button>
+          <button class="sb-btn dither-btn" data-mode="dots">Dots</button>
+          <button class="sb-btn dither-btn" data-mode="slashes">Slashes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colors -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="colors">
+        <span class="sb-section-title">Colors</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-color-row">
+          <span class="sb-color-lbl">Highlight</span>
+          <div class="swatch" id="sw-hi" style="background:#b7d053"><input type="color" id="color-hi" value="#b7d053"></div>
+        </div>
+        <div class="sb-color-row">
+          <span class="sb-color-lbl">Shadow</span>
+          <div class="swatch" id="sw-lo" style="background:#000000"><input type="color" id="color-lo" value="#000000"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Adjustments -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="adjustments">
+        <span class="sb-section-title">Adjustments</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Cell</span><input type="range" id="cell-size" min="2" max="20" step="1" value="5"><span class="sb-val" id="cell-size-val">5</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Depth</span><input type="range" id="extrude-depth" min="0.05" max="3" step="0.05" value="1.0"><span class="sb-val" id="depth-val">1.00</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Glow</span><input type="range" id="glow-slider" min="0" max="1" step="0.05" value="0.50"><span class="sb-val" id="glow-val">0.50</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Spin</span><input type="range" id="spin-speed" min="0" max="0.10" step="0.005" value="0.05"><span class="sb-val" id="spin-val">0.050</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Zoom</span><input type="range" id="cam-zoom" min="0.3" max="6" step="0.1" value="3.0"><span class="sb-val" id="zoom-val">3.00</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Export -->
+  <div class="sb-footer">
+    <div class="sb-input-lbl">Export Photo</div>
+    <div class="sb-btn-grid" style="padding:0 0 10px">
+      <button class="sb-btn" onclick="exportPNG(false)">With BG</button>
+      <button class="sb-btn" onclick="exportPNG(true)">Transparent</button>
+    </div>
+    <div class="sb-input-lbl">Export Video</div>
+    <div class="sb-btn-grid" style="padding:0">
+      <button class="sb-btn" onclick="exportVideo(3)">3s</button>
+      <button class="sb-btn" onclick="exportVideo(5)">5s</button>
+      <button class="sb-btn" onclick="exportVideo(10)">10s</button>
+      <button class="sb-btn" onclick="exportVideo(30)">30s</button>
+    </div>
+  </div>
+</div>
+
+<div id="canvas-area">
+  <canvas id="three-canvas"></canvas>
+  <canvas id="fx-canvas"></canvas>
+  <div id="loading-msg">
+    <div class="spinner"></div>
+    <p>Loading font…</p>
+  </div>
+  <div id="rec-indicator">
+    <div class="rec-row">
+      <div class="rec-dot"></div>
+      <span id="rec-label">Recording…</span>
+    </div>
+    <span id="rec-progress"></span>
+  </div>
+</div>
+
+<script>
+const state = {
+  text: 'scan type',
+  font: 'instrument_serif',
+  bevelSize: 0,
+  depth: 1.0,
+  spinSpeed: 0.05,
+  zoom: 3.0,
+  colorBg: '#050508',
+  colorLight: '#ffffff',
+  colorHi: '#b7d053',
+  colorLo: '#000000',
+  thresholdLevel: 0.50,
+  ditherMode: 'ascii',
+  cellSize: 5,
+  threshold: 0.50,
+  glow: 0.50,
+  fxIntensity: 0.5,
+  scanlineGap: 3,
+  vignetteIntensity: 0.65,
+};
+
+const fontUrls = {
+  astloch: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/astloch@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/astloch/files/astloch-latin-400-normal.woff',
+  ],
+  instrument_serif: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff',
+  ],
+  inter_tight: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/inter-tight@latest/latin-100-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/inter-tight/files/inter-tight-latin-100-normal.woff',
+  ],
+  gruppo: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/gruppo@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/gruppo/files/gruppo-latin-400-normal.woff',
+  ],
+  megrim: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/megrim@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/megrim/files/megrim-latin-400-normal.woff',
+  ],
+  poiret_one: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/poiret-one@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/poiret-one/files/poiret-one-latin-400-normal.woff',
+  ],
+  quintessential: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/quintessential@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/quintessential/files/quintessential-latin-400-normal.woff',
+  ],
+  tsukimi_rounded: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/tsukimi-rounded@latest/latin-300-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/tsukimi-rounded/files/tsukimi-rounded-latin-300-normal.woff',
+  ],
+  turret_road: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/turret-road@latest/latin-200-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/turret-road/files/turret-road-latin-200-normal.woff',
+  ],
+  unifraktur: [
+    'https://cdn.jsdelivr.net/fontsource/fonts/unifraktur-maguntia@latest/latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/npm/@fontsource/unifraktur-maguntia/files/unifraktur-maguntia-latin-400-normal.woff',
+    'https://cdn.jsdelivr.net/fontsource/fonts/unifrakturmaguntia@latest/latin-400-normal.woff',
+  ],
+};
+
+const fontCache = {};
+let loadedFont = null, textMesh = null, lastTime = 0, isRecording = false;
+
+const canvasArea  = document.getElementById('canvas-area');
+const canvas      = document.getElementById('three-canvas');
+const fxCanvas    = document.getElementById('fx-canvas');
+const fxCtx       = fxCanvas.getContext('2d');
+const viewport    = canvasArea;
+const loadingMsg  = document.getElementById('loading-msg');
+const recIndicator = document.getElementById('rec-indicator');
+const recLabel    = document.getElementById('rec-label');
+const recProgress = document.getElementById('rec-progress');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene  = new THREE.Scene();
+const FRUSTUM = 4;
+const camera = new THREE.OrthographicCamera(-FRUSTUM, FRUSTUM, FRUSTUM, -FRUSTUM, 0.1, 100);
+camera.position.z = 8;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.0));
+
+function makeSpot(x) {
+  const l = new THREE.SpotLight(0xffffff, 4.0);
+  l.position.set(x, 3, 8); l.target.position.set(0, 0, 0);
+  l.angle = Math.PI / 7; l.penumbra = 0.15; l.castShadow = true;
+  l.shadow.mapSize.width = l.shadow.mapSize.height = 2048;
+  l.shadow.camera.near = 1; l.shadow.camera.far = 60;
+  scene.add(l); scene.add(l.target); return l;
+}
+const lightL = makeSpot(-20), lightR = makeSpot(20);
+const dirLight = { color: { set: (c) => { lightL.color.set(c); lightR.color.set(c); } } };
+
+function syncSize() {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w, h);
+  fxCanvas.width = w; fxCanvas.height = h;
+  const aspect = w / h;
+  camera.left=-FRUSTUM*aspect; camera.right=FRUSTUM*aspect;
+  camera.top=FRUSTUM; camera.bottom=-FRUSTUM;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', syncSize);
+
+function opentypeToThreeFont(otFont) {
+  function signedArea(pts) {
+    let a = 0;
+    for (let i = 0, n = pts.length; i < n; i++) {
+      const p = pts[i], q = pts[(i + 1) % n];
+      a += p.x * q.y - q.x * p.y;
+    }
+    return a * 0.5;
+  }
+  function pointInPoly(px, py, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+      if (((yi > py) !== (yj > py)) && px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+        inside = !inside;
+    }
+    return inside;
+  }
+  return {
+    generateShapes(text, size) {
+      const allShapes = [];
+      const scale = size / otFont.unitsPerEm;
+      let xOffset = 0;
+      for (let i = 0; i < text.length; i++) {
+        const glyph = otFont.charToGlyph(text[i]);
+        if (!glyph) continue;
+        if (glyph.path && glyph.path.commands.length > 0) {
+          const subCmds = [];
+          for (const cmd of glyph.path.commands) {
+            if (cmd.type === 'M') subCmds.push([]);
+            if (subCmds.length) subCmds[subCmds.length - 1].push(cmd);
+          }
+          const analyzed = subCmds.map(cmds => {
+            const path = new THREE.Path();
+            let sx = 0, sy = 0;
+            for (const cmd of cmds) {
+              const x  = cmd.x  !== undefined ? cmd.x  * scale + xOffset : 0;
+              const y  = cmd.y  !== undefined ? cmd.y  * scale : 0;
+              const x1 = cmd.x1 !== undefined ? cmd.x1 * scale + xOffset : 0;
+              const y1 = cmd.y1 !== undefined ? cmd.y1 * scale : 0;
+              const x2 = cmd.x2 !== undefined ? cmd.x2 * scale + xOffset : 0;
+              const y2 = cmd.y2 !== undefined ? cmd.y2 * scale : 0;
+              switch (cmd.type) {
+                case 'M': path.moveTo(x, y); sx=x; sy=y; break;
+                case 'L': path.lineTo(x, y); break;
+                case 'C': path.bezierCurveTo(x1, y1, x2, y2, x, y); break;
+                case 'Q': path.quadraticCurveTo(x1, y1, x, y); break;
+                case 'Z': path.autoClose = true; break;
+              }
+            }
+            const pts = path.getPoints(16), area = signedArea(pts);
+            return { path, pts, area, sx, sy };
+          });
+          if (!analyzed.length) continue;
+          const outerSign = analyzed.reduce((best, a) => Math.abs(a.area) > Math.abs(best.area) ? a : best).area >= 0;
+          const outers = [], holes = [];
+          for (const a of analyzed) {
+            if ((a.area >= 0) === outerSign) outers.push(a); else holes.push(a);
+          }
+          const shapeObjs = outers.map(o => {
+            const shape = new THREE.Shape(); shape.curves = o.path.curves;
+            return { shape, pts: o.pts, area: Math.abs(o.area) };
+          });
+          shapeObjs.sort((a, b) => b.area - a.area);
+          for (const h of holes) {
+            let assigned = false;
+            for (const so of shapeObjs) {
+              if (pointInPoly(h.sx, h.sy, so.pts)) { so.shape.holes.push(h.path); assigned = true; break; }
+            }
+            if (!assigned && shapeObjs.length) shapeObjs[0].shape.holes.push(h.path);
+          }
+          for (const so of shapeObjs) allShapes.push(so.shape);
+        }
+        const nextGlyph = text[i + 1] ? otFont.charToGlyph(text[i + 1]) : null;
+        const kerning = nextGlyph ? otFont.getKerningValue(glyph, nextGlyph) * scale : 0;
+        xOffset += (glyph.advanceWidth || 0) * scale + kerning;
+      }
+      return allShapes;
+    }
+  };
+}
+
+async function loadFont(name) {
+  if (fontCache[name]) return fontCache[name];
+  const urls = fontUrls[name];
+  let lastErr;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      const font = opentypeToThreeFont(opentype.parse(buf));
+      fontCache[name] = font; return font;
+    } catch (e) { console.warn('Font URL failed:', url, e.message); lastErr = e; }
+  }
+  throw lastErr || new Error('All font URLs failed');
+}
+
+function buildText() {
+  if (!loadedFont) return;
+  if (textMesh) { scene.remove(textMesh); textMesh.geometry.dispose(); textMesh.material.dispose(); textMesh = null; }
+  const txt = (state.text || '').trim();
+  if (!txt) return;
+  const shapes = loadedFont.generateShapes(txt, 1);
+  if (!shapes || shapes.length === 0) return;
+  const geo = new THREE.ExtrudeGeometry(shapes, { depth: state.depth, bevelEnabled: false, curveSegments: 12 });
+  geo.computeBoundingBox();
+  const center = new THREE.Vector3(); geo.boundingBox.getCenter(center); geo.translate(-center.x, -center.y, -center.z);
+  textMesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3, roughness: 0.45 }));
+  textMesh.castShadow = true; textMesh.receiveShadow = true; scene.add(textMesh);
+}
+
+const mouse = { dragging: false, lastX: 0, lastY: 0, velX: 0, velY: 0 };
+function evXY(e) { return e.touches && e.touches.length > 0 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY }; }
+
+viewport.addEventListener('mousedown', e => { const { x, y } = evXY(e); mouse.dragging=true; mouse.lastX=x; mouse.lastY=y; mouse.velX=0; mouse.velY=0; });
+let pinchDist = null;
+viewport.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { const { x, y } = evXY(e); mouse.dragging=true; mouse.lastX=x; mouse.lastY=y; mouse.velX=0; mouse.velY=0; pinchDist=null; }
+  else if (e.touches.length === 2) { mouse.dragging=false; pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); }
+}, { passive: true });
+window.addEventListener('mousemove', e => {
+  if (!mouse.dragging) return;
+  const { x, y } = evXY(e); const dx=x-mouse.lastX, dy=y-mouse.lastY;
+  mouse.lastX=x; mouse.lastY=y; mouse.velX=dx; mouse.velY=dy;
+  if (textMesh) { textMesh.rotation.y+=dx*0.01; textMesh.rotation.x+=dy*0.01; }
+});
+window.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && pinchDist !== null) {
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    state.zoom=Math.max(0.3,Math.min(6,state.zoom*(d/pinchDist))); pinchDist=d;
+    const sl=document.getElementById('cam-zoom'),vl=document.getElementById('zoom-val');
+    if(sl)sl.value=state.zoom; if(vl)vl.textContent=state.zoom.toFixed(2); return;
+  }
+  if (!mouse.dragging) return;
+  const { x, y } = evXY(e); const dx=x-mouse.lastX, dy=y-mouse.lastY;
+  mouse.lastX=x; mouse.lastY=y; mouse.velX=dx; mouse.velY=dy;
+  if (textMesh) { textMesh.rotation.y+=dx*0.01; textMesh.rotation.x+=dy*0.01; }
+}, { passive: true });
+window.addEventListener('mouseup', () => { mouse.dragging=false; });
+window.addEventListener('touchend', e => { if(e.touches.length<2)pinchDist=null; if(e.touches.length===0)mouse.dragging=false; });
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  state.zoom=Math.max(0.3,Math.min(6,state.zoom-e.deltaY*0.001));
+  const sl=document.getElementById('cam-zoom'),vl=document.getElementById('zoom-val');
+  if(sl)sl.value=state.zoom; if(vl)vl.textContent=state.zoom.toFixed(2);
+}, { passive: false });
+
+function hexToRgb(hex) { return { r:parseInt(hex.slice(1,3),16), g:parseInt(hex.slice(3,5),16), b:parseInt(hex.slice(5,7),16) }; }
+
+function applyThreshold(data, w, h) {
+  const hi=hexToRgb(state.colorHi), lo=hexToRgb(state.colorLo);
+  const out = new Uint8ClampedArray(data.length);
+  for (let i = 0; i < data.length; i += 4) {
+    const lum=(0.299*data[i]+0.587*data[i+1]+0.114*data[i+2])/255;
+    const c=lum>=state.thresholdLevel?hi:lo;
+    out[i]=c.r; out[i+1]=c.g; out[i+2]=c.b; out[i+3]=data[i+3];
+  }
+  return out;
+}
+
+const ASCII_RAMP = ' .`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+const DOTS_ORDER = [4, 1, 3, 5, 7, 0, 2, 6, 8];
+
+function drawDitherOverlay(src, transparent = false) {
+  const w=fxCanvas.width, h=fxCanvas.height;
+  const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+  const tc=tmp.getContext('2d'); tc.drawImage(src,0,0,w,h);
+  const raw=tc.getImageData(0,0,w,h).data;
+  const thr=applyThreshold(raw,w,h);
+  const hi=hexToRgb(state.colorHi), lo=hexToRgb(state.colorLo);
+  const hiStr=`rgb(${hi.r},${hi.g},${hi.b})`, loStr=`rgb(${lo.r},${lo.g},${lo.b})`;
+  fxCtx.clearRect(0,0,w,h);
+  if (state.ditherMode === 'none') { fxCtx.putImageData(new ImageData(thr,w,h),0,0); }
+  else {
+    if (!transparent) { fxCtx.fillStyle=loStr; fxCtx.fillRect(0,0,w,h); }
+    const cs=state.cellSize;
+    for (let cy=0;cy<h;cy+=cs) {
+      for (let cx=0;cx<w;cx+=cs) {
+        const px=Math.min(cx+Math.floor(cs/2),w-1), py=Math.min(cy+Math.floor(cs/2),h-1);
+        const pi=(py*w+px)*4;
+        const br=(0.299*thr[pi]+0.587*thr[pi+1]+0.114*thr[pi+2])/255;
+        if (br<=state.threshold) continue;
+        fxCtx.fillStyle=fxCtx.strokeStyle=hiStr;
+        switch (state.ditherMode) {
+          case 'ascii': { const ci=Math.min(Math.floor(br*(ASCII_RAMP.length-1)),ASCII_RAMP.length-1); fxCtx.font=`${cs}px monospace`; fxCtx.textAlign='center'; fxCtx.textBaseline='middle'; fxCtx.fillText(ASCII_RAMP[ci],cx+cs/2,cy+cs/2); break; }
+          case 'blocks': { const sz=cs*br,off=(cs-sz)/2; fxCtx.fillRect(cx+off,cy+off,sz,sz); break; }
+          case 'lines': { const lh=Math.max(1,cs*br),off=(cs-lh)/2; fxCtx.fillRect(cx,cy+off,cs,lh); break; }
+          case 'circles': { fxCtx.beginPath(); fxCtx.arc(cx+cs/2,cy+cs/2,(cs/2)*br,0,Math.PI*2); fxCtx.fill(); break; }
+          case 'crosses': { const arm=(cs/2)*br,mx=cx+cs/2,my=cy+cs/2,t=Math.max(1,cs*0.14); fxCtx.fillRect(mx-arm,my-t/2,arm*2,t); fxCtx.fillRect(mx-t/2,my-arm,t,arm*2); break; }
+          case 'dots': { const sub=cs/3,cnt=Math.round(br*9),r=sub*0.36; for(let d=0;d<cnt&&d<DOTS_ORDER.length;d++){const idx=DOTS_ORDER[d];fxCtx.beginPath();fxCtx.arc(cx+(idx%3)*sub+sub/2,cy+Math.floor(idx/3)*sub+sub/2,r,0,Math.PI*2);fxCtx.fill();} break; }
+          case 'slashes': { const cnt=Math.max(1,Math.ceil(br*3)); fxCtx.lineWidth=Math.max(1,cs*0.14); fxCtx.lineCap='round'; for(let s=0;s<cnt;s++){const xf=cnt>1?s/(cnt-1):0.5;const sx=cx+xf*cs*0.55+cs*0.1,sl=cs*0.75*br;fxCtx.beginPath();fxCtx.moveTo(sx,cy+cs*0.85);fxCtx.lineTo(sx+sl,cy+cs*0.85-sl);fxCtx.stroke();} break; }
+        }
+      }
+    }
+  }
+  if (!transparent) {
+    const g=fxCtx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*0.65);
+    g.addColorStop(0,'transparent'); g.addColorStop(1,`rgba(0,0,0,${state.vignetteIntensity*0.9})`);
+    fxCtx.fillStyle=g; fxCtx.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=state.scanlineGap+1){
+      fxCtx.fillStyle=`rgba(0,0,0,${state.fxIntensity*0.88})`; fxCtx.fillRect(0,y,w,1);
+      fxCtx.fillStyle=`rgba(0,255,80,${0.025*state.fxIntensity})`; fxCtx.fillRect(0,y+1,w,state.scanlineGap);
+    }
+  }
+  if (state.glow > 0) {
+    const g1=document.createElement('canvas'); g1.width=w; g1.height=h;
+    const gc1=g1.getContext('2d'); gc1.filter=`blur(${state.glow*6}px)`; gc1.drawImage(fxCanvas,0,0);
+    const g2=document.createElement('canvas'); g2.width=w; g2.height=h;
+    const gc2=g2.getContext('2d'); gc2.filter=`blur(${state.glow*28}px)`; gc2.drawImage(fxCanvas,0,0);
+    fxCtx.globalCompositeOperation='screen';
+    fxCtx.globalAlpha=Math.min(1,state.glow*1.4); fxCtx.drawImage(g1,0,0);
+    fxCtx.globalAlpha=Math.min(1,state.glow*1.1); fxCtx.drawImage(g2,0,0);
+    fxCtx.globalCompositeOperation='source-over'; fxCtx.globalAlpha=1;
+  }
+}
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  const delta=Math.min((time-lastTime)/1000,0.1); lastTime=time;
+  if (textMesh && !mouse.dragging) {
+    textMesh.rotation.y+=state.spinSpeed*delta;
+    textMesh.rotation.y+=mouse.velX*0.008; textMesh.rotation.x+=mouse.velY*0.008;
+    mouse.velX*=0.88; mouse.velY*=0.88;
+  }
+  camera.zoom=state.zoom; camera.updateProjectionMatrix();
+  scene.background=new THREE.Color(state.colorBg);
+  dirLight.color.set(state.colorLight);
+  renderer.render(scene,camera);
+  drawDitherOverlay(canvas);
+}
+
+function showRec(label) { isRecording=true; recLabel.textContent=label; recProgress.textContent=''; recIndicator.style.display='flex'; }
+function hideRec() { isRecording=false; recIndicator.style.display='none'; }
+
+function exportPNG(transparent=false) {
+  const savedBg=scene.background;
+  if(transparent)scene.background=null;
+  renderer.render(scene,camera);
+  const fw=canvas.width,fh=canvas.height;
+  fxCanvas.width=fw; fxCanvas.height=fh;
+  drawDitherOverlay(canvas,transparent);
+  const exp=document.createElement('canvas'); exp.width=fw; exp.height=fh;
+  exp.getContext('2d').drawImage(fxCanvas,0,0);
+  const a=document.createElement('a');
+  a.download=transparent?'scan-type-transparent.png':'scan-type.png';
+  a.href=exp.toDataURL('image/png'); a.click();
+  if(transparent){scene.background=savedBg;renderer.render(scene,camera);}
+  fxCanvas.width=viewport.clientWidth; fxCanvas.height=viewport.clientHeight;
+}
+
+function exportVideo(duration=3) {
+  if(isRecording)return;
+  const ms=duration*1000;
+  const stream=fxCanvas.captureStream(30);
+  const mimeType=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';
+  const recorder=new MediaRecorder(stream,{mimeType});
+  const chunks=[];
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks.push(e.data);};
+  recorder.onstop=()=>{
+    hideRec();
+    const blob=new Blob(chunks,{type:'video/webm'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scan-type.webm'; a.click();
+  };
+  showRec('Recording video…'); recorder.start(100);
+  let elapsed=0;
+  const tick=setInterval(()=>{elapsed+=100;recProgress.textContent=`${((ms-elapsed)/1000).toFixed(1)}s remaining`;if(elapsed>=ms){clearInterval(tick);recorder.stop();}},100);
+}
+
+// Section collapse
+document.querySelectorAll('.sb-section-header').forEach(h => {
+  h.addEventListener('click', () => {
+    const section = h.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    const tog = h.querySelector('.sb-section-toggle');
+    if (tog) tog.textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// Text input
+let textDebounce;
+document.getElementById('text-input').addEventListener('input', function() {
+  state.text = this.value;
+  clearTimeout(textDebounce);
+  textDebounce = setTimeout(buildText, 400);
+});
+
+// Font buttons
+document.querySelectorAll('.font-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active'); state.font = this.dataset.font;
+    loadingMsg.style.display = 'flex';
+    try { loadedFont = await loadFont(state.font); buildText(); }
+    catch (e) { console.error('Font failed:', e); loadingMsg.querySelector('p').textContent='Font load failed'; return; }
+    loadingMsg.style.display = 'none';
+  });
+});
+
+// Dither buttons
+document.querySelectorAll('.dither-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.dither-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active'); state.ditherMode = this.dataset.mode;
+  });
+});
+
+// Sliders
+function wireSlider(id, valId, key, fmt, onChange) {
+  const el=document.getElementById(id); if(!el)return;
+  el.addEventListener('input', function() {
+    state[key]=+this.value;
+    const vEl=document.getElementById(valId); if(vEl)vEl.textContent=fmt(+this.value);
+    if(onChange)onChange();
+  });
+}
+const f2=v=>v.toFixed(2), fi=v=>String(Math.round(v));
+wireSlider('extrude-depth','depth-val','depth',f2,buildText);
+wireSlider('spin-speed','spin-val','spinSpeed',v=>v.toFixed(3));
+wireSlider('cam-zoom','zoom-val','zoom',f2);
+wireSlider('cell-size','cell-size-val','cellSize',fi);
+wireSlider('glow-slider','glow-val','glow',f2);
+
+// Color pickers
+function wireColor(inputId, swatchId, key) {
+  document.getElementById(inputId).addEventListener('input', function() {
+    state[key]=this.value; document.getElementById(swatchId).style.background=this.value;
+  });
+}
+wireColor('color-hi','sw-hi','colorHi');
+wireColor('color-lo','sw-lo','colorLo');
+
+async function init() {
+  syncSize();
+  loadingMsg.style.display='flex';
+  try { loadedFont=await loadFont(state.font); loadingMsg.style.display='none'; buildText(); }
+  catch(err) { console.error('Init font error:', err); loadingMsg.querySelector('p').textContent='Font load failed — check console'; }
+  animate(0);
+}
+
+lucide.createIcons();
+document.getElementById('cam-zoom').value = state.zoom;
+init();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

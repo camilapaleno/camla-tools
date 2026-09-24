@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cassette Tape Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    #canvas-area #viewport { position: absolute; inset: 0; }
+    #viewport canvas { display: block; filter: contrast(1.4) brightness(1.0); }
+
+    /* ── Crop Modal ── */
+    #crop-modal {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #crop-modal.open { display: flex; }
+    .crop-box {
+      background: var(--panel); border: 1px solid var(--border-hi);
+      border-radius: 14px; box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+      width: min(90vw, 580px); display: flex; flex-direction: column;
+      overflow: hidden; max-height: 90vh;
+    }
+    .crop-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .crop-title { font-size: 13px; color: var(--text-hi); }
+    .crop-canvas-wrap {
+      overflow: hidden; background: #000; flex: 1; min-height: 0;
+      display: flex; align-items: center; justify-content: center; height: 460px;
+    }
+    #crop-canvas { display: block; cursor: move; max-width: 100%; max-height: 100%; }
+    .crop-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .crop-hint { font-size: 11px; color: var(--text-lo); }
+    .crop-actions { display: flex; gap: 8px; }
+    .btn-cancel {
+      padding: 7px 16px; background: transparent; border: 1px solid var(--border-hi);
+      border-radius: 7px; color: var(--text-mid); font-family: inherit;
+      font-size: 12px; cursor: pointer; transition: all 0.12s;
+    }
+    .btn-cancel:hover { background: var(--panel-hover); color: var(--text-hi); }
+    .btn-apply {
+      padding: 7px 16px; background: var(--accent-bg); border: 1px solid var(--accent);
+      border-radius: 7px; color: var(--accent); font-family: inherit;
+      font-size: 12px; cursor: pointer; transition: all 0.12s;
+    }
+    .btn-apply:hover { background: var(--accent); color: #0a0a0f; }
+
+    /* ── GIF Progress ── */
+    #gif-overlay {
+      display: none; position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #gif-overlay.open { display: flex; }
+    .gif-box {
+      background: var(--panel); border: 1px solid var(--border-hi);
+      border-radius: 14px; padding: 32px 40px;
+      display: flex; flex-direction: column; gap: 16px;
+      align-items: center; min-width: 280px;
+    }
+    .gif-title { font-size: 13px; color: var(--text-hi); }
+    .gif-track { width: 100%; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+    .gif-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.1s linear; }
+    .gif-sub { font-size: 11px; color: var(--text-lo); }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/media-mockups</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body">
+
+    <!-- Play + Speed -->
+    <div class="sb-section" style="border-top:none">
+      <div class="sb-ctrl" style="gap:10px;">
+        <button class="tool-btn icon-only active" id="btn-play" style="flex-shrink:0;">
+          <span class="ico"><i data-lucide="pause" width="15" height="15" stroke-width="1.5"></i></span>
+        </button>
+        <span class="sb-ctrl-lbl" style="flex:0 0 auto;">Speed</span>
+        <input type="range" id="slider-speed" min="0.1" max="5" step="0.1" value="1">
+        <span class="sb-val" id="val-speed">1.0×</span>
+      </div>
+    </div>
+
+    <!-- Media -->
+    <div class="sb-section" id="sec-media">
+      <div class="sb-section-header" data-section="sec-media">
+        <span class="sb-section-title">Media</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:2px 14px 10px;">
+          <button id="media-btn-cassette" style="display:flex;align-items:center;gap:10px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;cursor:pointer;width:100%;">
+            <img src="CASSETTE-TAPE/CASSETTE-TAPE-MOCKUPS_front.png" style="width:36px;height:36px;object-fit:cover;border-radius:3px;flex-shrink:0;">
+            <span class="media-label" style="font-size:12px;color:var(--accent);">Cassette</span>
+          </button>
+          <button id="media-btn-floppy" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border-hi);border-radius:6px;padding:8px 10px;cursor:pointer;width:100%;">
+            <img src="floppy-disk/floppy-disk-base-front.png" style="width:36px;height:36px;object-fit:cover;border-radius:3px;flex-shrink:0;">
+            <span class="media-label" style="font-size:12px;color:var(--text-mid);">Floppy Disk</span>
+          </button>
+          <button id="media-btn-cd" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border-hi);border-radius:6px;padding:8px 10px;cursor:pointer;width:100%;">
+            <img src="CD/cd-base-front.png" style="width:36px;height:36px;object-fit:cover;border-radius:3px;flex-shrink:0;">
+            <span class="media-label" style="font-size:12px;color:var(--text-mid);">CD</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CD Case (visible only when CD is active) -->
+    <div class="sb-section" id="cd-case-ctrl" style="display:none">
+      <div class="sb-section-header" data-section="cd-case-ctrl">
+        <span class="sb-section-title">Case</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-btn-grid">
+          <button id="cd-case-basic" style="padding:0;background:none;border:2px solid var(--accent);border-radius:4px;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-front.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:2px;">
+          </button>
+          <button id="cd-case-clear" style="padding:0;background:none;border:2px solid transparent;border-radius:4px;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-front-2.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:2px;">
+          </button>
+          <button id="cd-case-solo" style="padding:0;background:none;border:2px solid transparent;border-radius:50%;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-solo.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:50%;">
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CD Back (visible only when CD is active) -->
+    <div class="sb-section" id="cd-back-ctrl" style="display:none">
+      <div class="sb-section-header" data-section="cd-back-ctrl">
+        <span class="sb-section-title">Back</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-btn-grid">
+          <button id="cd-back-1" style="padding:0;background:none;border:2px solid var(--accent);border-radius:4px;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-irridescent.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:2px;">
+          </button>
+          <button id="cd-back-2" style="padding:0;background:none;border:2px solid transparent;border-radius:4px;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-irridescent-2.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:2px;">
+          </button>
+          <button id="cd-back-3" style="padding:0;background:none;border:2px solid transparent;border-radius:4px;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-irridescent-3.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:2px;">
+          </button>
+          <button id="cd-back-4" style="padding:0;background:none;border:2px solid transparent;border-radius:4px;cursor:pointer;overflow:hidden;">
+            <img src="CD/cd-base-irridescent-4.png" style="width:48px;height:48px;object-fit:cover;display:block;border-radius:2px;">
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="sb-section" id="sec-upload">
+      <div class="sb-section-header" data-section="sec-upload">
+        <span class="sb-section-title">Artwork</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body" style="padding:4px 0 6px;">
+          <!-- Front -->
+          <div class="p-row" id="upload-row-front" style="gap:10px;padding:6px 14px;">
+            <div id="thumb-wrap-front" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-front" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-front" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Front</span>
+            <button class="tool-btn icon-only" id="btn-repos-front" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-front" title="Upload front">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- Side -->
+          <div class="p-row" id="upload-row-side" style="gap:10px;padding:6px 14px;">
+            <div id="thumb-wrap-side" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-side" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-side" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Side</span>
+            <button class="tool-btn icon-only" id="btn-repos-side" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-side" title="Upload side">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- Back -->
+          <div class="p-row" id="upload-row-back" style="gap:10px;padding:6px 14px;">
+            <div id="thumb-wrap-back" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-back" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-back" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Back</span>
+            <button class="tool-btn icon-only" id="btn-repos-back" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-back" title="Upload back">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- Label (floppy only) -->
+          <div class="p-row" id="upload-row-label" style="gap:10px;padding:6px 14px;display:none;">
+            <div id="thumb-wrap-label" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-label" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-label" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Label</span>
+            <button class="tool-btn icon-only" id="btn-repos-label" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-label" title="Upload label">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- Spine (CD only) -->
+          <div class="p-row" id="upload-row-cd-spine" style="gap:10px;padding:6px 14px;display:none;">
+            <div id="thumb-wrap-cd-spine" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-cd-spine" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-cd-spine" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Spine</span>
+            <button class="tool-btn icon-only" id="btn-repos-cd-spine" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-cd-spine" title="Upload spine">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- Side art (CD v1 only) -->
+          <div class="p-row" id="upload-row-cd-side-1" style="gap:10px;padding:6px 14px;display:none;">
+            <div id="thumb-wrap-cd-side-1" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-cd-side-1" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-cd-side-1" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Side</span>
+            <button class="tool-btn icon-only" id="btn-cd-side-1" title="Upload side art">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- CD Art v2 (CD2 only) -->
+          <div class="p-row" id="upload-row-cd-disc-2" style="gap:10px;padding:6px 14px;display:none;">
+            <div id="thumb-wrap-cd-disc-2" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-cd-disc-2" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-cd-disc-2" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">CD Art</span>
+            <button class="tool-btn icon-only" id="btn-repos-cd-disc-2" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-cd-disc-2" title="Upload CD art">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <!-- CD Art (CD only) -->
+          <div class="p-row" id="upload-row-cd-disc" style="gap:10px;padding:6px 14px;display:none;">
+            <div id="thumb-wrap-cd-disc" style="width:36px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-cd-disc" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="image" width="14" height="14" stroke-width="1.5" id="thumb-icon-cd-disc" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">CD Art</span>
+            <button class="tool-btn icon-only" id="btn-repos-cd-disc" style="display:none;" title="Reposition">
+              <span class="ico"><i data-lucide="move" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+            <button class="tool-btn icon-only" id="btn-cd-disc" title="Upload CD art">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+          <div class="p-row" id="upload-row-cd-disc-solo" style="gap:10px;padding:6px 14px;display:none;">
+            <div id="thumb-wrap-cd-disc-solo" style="width:36px;height:36px;flex-shrink:0;border-radius:50%;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;">
+              <img id="thumb-cd-disc-solo" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <i data-lucide="disc" width="14" height="14" stroke-width="1.5" id="thumb-icon-cd-disc-solo" style="color:var(--text-lo);"></i>
+            </div>
+            <span style="flex:1;font-size:12px;color:var(--text-mid);">Disc Art</span>
+            <button class="tool-btn icon-only" id="btn-cd-disc-solo" title="Upload disc art">
+              <span class="ico"><i data-lucide="upload" width="13" height="13" stroke-width="1.5"></i></span>
+            </button>
+          </div>
+      </div>
+    </div>
+
+    <!-- Colors -->
+    <div class="sb-section" id="sec-colors">
+      <div class="sb-section-header" data-section="sec-colors">
+        <span class="sb-section-title">Colors</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="p-color-row" id="color-row-tint">
+          <span class="lbl">Tint</span>
+          <div class="swatch" id="tint-swatch" style="background:#ffffff;">
+            <input type="color" id="tint-color" value="#ffffff">
+          </div>
+          <span style="font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;" id="tint-hex">#ffffff</span>
+        </div>
+        <div class="p-color-row">
+          <span class="lbl">Base</span>
+          <div class="swatch" id="base-swatch" style="background:#978e87;">
+            <input type="color" id="base-color" value="#978e87">
+          </div>
+          <span style="font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;" id="base-hex">#978e87</span>
+        </div>
+        <div class="p-color-row" id="color-row-cassette">
+          <span class="lbl">Cassette</span>
+          <div class="swatch" id="cassette-swatch" style="background:#c1b99f;">
+            <input type="color" id="cassette-color" value="#c1b99f">
+          </div>
+          <span style="font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;" id="cassette-hex">#c1b99f</span>
+        </div>
+        <div class="p-color-row" id="color-row-slider" style="display:none;">
+          <span class="lbl">Slider</span>
+          <div class="swatch" id="slider-swatch" style="background:#b0b0b0;">
+            <input type="color" id="slider-color" value="#b0b0b0">
+          </div>
+          <span style="font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;" id="slider-hex">#b0b0b0</span>
+        </div>
+        <div class="p-color-row">
+          <span class="lbl">BG</span>
+          <div class="swatch" id="bg-swatch" style="background:#0c0f0a;">
+            <input type="color" id="bg-color" value="#0c0f0a">
+          </div>
+          <span style="font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;" id="bg-hex">#0c0f0a</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finish -->
+    <div class="sb-section" id="finish-group">
+      <div class="sb-section-body" style="padding:8px 14px;">
+        <div class="sb-toggle-row" style="padding:0;">
+          <span class="sb-toggle-lbl">Finish</span>
+          <div class="sb-toggle-group">
+            <button class="sb-toggle-btn active" id="finish-plastic">Plastic</button>
+            <button class="sb-toggle-btn" id="finish-matte">Matte</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Post -->
+    <div class="sb-section">
+      <div class="sb-section-body" style="padding:8px 14px;">
+        <div class="sb-toggle-row" style="padding:0 0 6px;">
+          <span class="sb-toggle-lbl">Post</span>
+          <div class="sb-toggle-group">
+            <button class="sb-toggle-btn" id="post-grain">Grain</button>
+            <button class="sb-toggle-btn" id="post-threshold">Threshold</button>
+          </div>
+        </div>
+        <div class="sb-ctrl" id="threshold-ctrl" style="display:none;padding:0;">
+          <span class="sb-ctrl-lbl">Threshold</span>
+          <input type="range" id="threshold-val" min="0" max="255" value="128">
+          <span class="sb-val" id="threshold-num">128</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lighting (hidden — reserved for future use) -->
+    <div class="sb-section" style="display:none">
+      <div class="sb-section-body">
+        <div class="sb-btn-grid" id="panel-light">
+          <button class="sb-btn active" data-env="studio">Studio</button>
+          <button class="sb-btn" data-env="dramatic">Dramatic</button>
+          <button class="sb-btn" data-env="warm">Warm</button>
+          <button class="sb-btn" data-env="cool">Cool</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sb-body -->
+
+  <div class="sb-footer" style="display:flex;gap:6px;">
+    <button class="sb-export-btn" id="btn-png" style="flex:1;justify-content:center;">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="image" width="14" height="14" stroke-width="1.5"></i>PNG
+      </span>
+    </button>
+    <button class="sb-export-btn" id="btn-gif" style="flex:1;justify-content:center;">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="film" width="14" height="14" stroke-width="1.5"></i>GIF
+      </span>
+    </button>
+  </div>
+
+</div><!-- /sidebar -->
+
+<div id="canvas-area">
+  <div id="viewport"></div>
+</div>
+
+<!-- ── Crop Modal ── -->
+<div id="crop-modal">
+  <div class="crop-box">
+    <div class="crop-header">
+      <span class="crop-title" id="crop-title">Crop Artwork — Front</span>
+      <button class="tool-btn icon-only" id="btn-crop-close">
+        <span class="ico"><i data-lucide="x" width="15" height="15" stroke-width="1.5"></i></span>
+      </button>
+    </div>
+    <div class="crop-canvas-wrap">
+      <canvas id="crop-canvas"></canvas>
+    </div>
+    <div class="crop-footer">
+      <span class="crop-hint">Drag to pan · Scroll to resize crop</span>
+      <div class="crop-actions">
+        <button class="btn-cancel" id="btn-crop-cancel">Cancel</button>
+        <button class="btn-apply"  id="btn-crop-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GIF Progress ── -->
+<div id="gif-overlay">
+  <div class="gif-box">
+    <div class="gif-title" id="gif-title">Recording GIF…</div>
+    <div class="gif-track"><div class="gif-fill" id="gif-fill"></div></div>
+    <div class="gif-sub"   id="gif-sub">Frame 0 / 60</div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*" style="display:none;">
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls }            from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment }          from 'three/addons/environments/RoomEnvironment.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import { EffectComposer }           from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }               from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass }               from 'three/addons/postprocessing/ShaderPass.js';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+
+// ── Cassette geometry (derived from artwork pixel dims) ───────────────────
+const BOX_H = 2.0;
+const BOX_W = (815 / 1285) * BOX_H;  // ≈ 1.268
+const BOX_D = (174 / 1285) * BOX_H;  // ≈ 0.271
+
+const FACE_CFG = {
+  front: { w: 815, h: 1286, ow: 792, oh: 1249 },
+  back:  { w: 815, h: 1283, ow: 791, oh: 1246 },
+  side:  { w: 174, h: 1284, ow: 158, oh: 1246 },
+};
+const BACK_ART_RATIO = 323 / 791;
+const IMG_PATH = 'CASSETTE-TAPE/CASSETTE-TAPE-MOCKUPS_';
+
+// ── Floppy disk constants ─────────────────────────────────────────────────
+const FLOPPY_SVG_PATH = `M399.38,436.32c-8.43-.07-17.05-.45-25.56-.23-1.57-.2-.88-1.49-1.07-1.69-.07-.07-1.05.05-1.33-.01-108.85.41-217.84.44-326.68-.01l-.96.5-.36-.48c.62,1.29-.77.92-.24,1.68H10.19c-6.03-.41-9.79-5.37-10.19-11.14V11.38C-.04,7.16,3.31,1.96,7.4.79c.86-.24,1.68-.15,2.29-.31.26-.07.13-.48.16-.48h35.62s.36.33.36.36v3.96h56.13c.08,0-.17-1.4.14-1.44h219.34s.24,9.12.24,9.12h13.31l3.84-5.28h38.74V.36s.33-.36.36-.36h16.19c6.77,8.74,14.31,17,21.34,25.55.46.56.83,1.18,1.21,1.79v397.22c-.37,1-.27,2.11-.51,3.21-.71,3.32-3.67,6.52-6.81,7.69-1.08.4-2.39.46-3.48.85-2.15-.01-4.32.02-6.48,0ZM402.5,388.59h-18.95v18.47h18.95v-18.47ZM13.68,388.83v18.47h19.19v-18.47H13.68Z`;
+const FLOPPY_SVG_W = 416.65, FLOPPY_SVG_H = 436.33;
+const FLOPPY_DEPTH = 12, FLOPPY_SCALE = 0.005;
+const FLOPPY_W = 1738, FLOPPY_H = 1819;
+const FLOPPY_ART = { w: 1364, h: 1111, x: 187, y: 708 };
+const FLOPPY_IMG = 'floppy-disk/floppy-disk-';
+
+// ── CD Case constants ─────────────────────────────────────────────────────
+const CD_W = 2703, CD_H = 2379;
+const CD_BOX_W = (2703 / 2379) * 2.0; // ≈ 2.272 world units
+const CD_BOX_H = 2.0;
+const CD_BOX_D = 0.14;
+const CD_CORNER_R = 0.01; // face corner radius, independent of depth
+const CD_SPINE = { x: 10, y: 35, w: 221, h: 2309 };
+const CD_DISC  = { cx: 1430, cy: 1190, outerW: 2270, outerH: 2287, innerR: 360.5 };
+const CD_IMG   = 'CD/cd-base-';
+
+// ── CD Case v2 constants (no spine, square-ish front panel) ──────────────
+const CD2_W = 988, CD2_H = 961;
+const CD2_BOX_W = (CD2_W / CD2_H) * 2.0; // ≈ 2.056 world units
+const CD2_BOX_H = 2.0;
+const CD2_BOX_D = 0.14;
+const CD2_DISC  = { cx: 494, cy: 480, outerW: 860, outerH: 880, innerR: 160 };
+const CD2_SVG_W = 987.05, CD2_SVG_H = 960.04;
+const CD2_SVG_PATH = 'M934.1,0c6.51,1.97,14.58.91,21.24,2.23,2.67.53,16.22,4.76,18.1,5.87,6.27,3.7,11.74,20.03,13.6,26.86v890.07c-3.01,5.2-2.76,11.3-5.78,16.69-.88,1.57-8.57,11.52-9.67,12.31-5.8,4.15-28.57,6.38-35.98,5.95-4.06-.24-8.84-1.85-12.96-2.02-55.32-2.36-116.46,3.41-170.9-.92-5.02-.4-9.09-2.23-13.89-3.09-160.28.18-320.37-2.28-480.61-1.99-3.65.48-6.36,3.69-9.49,5.5l-210.28.58c-15.76-2.01-33.51-8.08-36.43-25.51C-.34,637.9.11,343.14,0,48.4c1.85-6.53-.09-13.34,1.33-19.63C5,12.44,18.12,6.39,33.48,3.96h212.84c5.23-.3,8.86,7.63,12.9,8.1,122.26,1.44,244.42-.8,366.76-.14,2.78-.71,2.95,2.41,3.64,2.83,3.05,1.89,41.41-.73,48.2-.81,21.15-.25,42.34.27,63.48.05-.64-6.76.22-3.93,3.17-5.27,2.12-.96,3.69-2.88,6.29-2.75l179.35.03V0s3.99,0,3.99,0Z';
+
+// ── Solo CD constants ─────────────────────────────────────────────────────
+const CD_SOLO_OUTER_R       = 1.0;   // world-unit outer radius
+const CD_SOLO_INNER_R       = 0.13;  // center hole radius
+const CD_SOLO_BOX_D         = 0.01;  // disc thickness
+const CD_SOLO_CANVAS        = 1024;  // texture canvas size (square)
+const CD_SOLO_USER_OUTER_F  = 0.98;  // user art outer as fraction of OUTER_R
+const CD_SOLO_USER_INNER_F  = 0.32;  // user art inner (hub label) as fraction
+
+// ── State ─────────────────────────────────────────────────────────────────
+const state = {
+  rotating:      true,
+  speed:         1.0,
+  tint:          '#ffffff',
+  baseColor:     '#978e87',
+  cassetteColor: '#c1b99f',
+  bg:            '#0c0f0a',
+  finish:        'plastic',
+  grainEnabled:  false,
+  thresholdEnabled: false,
+  thresholdVal:  128,
+  currentFace:   null,
+  cropImg:       null,
+  cropRect:      { x: 0, y: 0, w: 0, h: 0 },
+  mediaType:        'cassette',
+  floppyBaseColor:  '#ffffff',
+  floppySliderColor:'#b0b0b0',
+  cdBaseColor:      '#ffffff',
+  cdFinish:         'plastic',
+  cd2BaseColor:     '#ffffff',
+  cd2Finish:        'plastic',
+  cdCase:           'solo',
+  cdBack:           '1',
+  cdSoloBaseColor:  '#ffffff',
+  cdSoloFinish:     'plastic',
+};
+
+const assets      = { template: {}, overlay: {}, midOverlay: null };
+const userArt     = { front: null, back: null, side: null, label: null, cdSpine: null, cdDisc: null, cdDisc2: null, cdDiscSolo: null, cdSide1: null };
+const userOriginal = { front: null, back: null, side: null, label: null, cdSpine: null, cdDisc: null, cdDisc2: null, cdDiscSolo: null, cdSide1: null };
+const floppyAssets = { base: null, slider: null, artwork: null };
+const floppyTex = {};
+const floppyMat = {};
+const floppyCanvases = {};
+let floppyGroup = null;
+
+const cdAssets   = { front: null, back: null, overlay: null, spineside: null, topbottom: null };
+const cdTex      = {};
+const cdMat      = {};
+const cdCanvases = {};
+const cdUserTex      = {};
+const cdUserMat      = {};
+const cdUserCanvases = {};
+const cdOverlayTex      = {};
+const cdOverlayMat      = {};
+const cdOverlayCanvases = {};
+let cdGroup = null;
+let cdDiscMeshes = [];
+let cdLastAzimuth = 0;
+
+const cd2Assets   = { front: null, back: null, side: null, leftside: null, topbottom: null };
+const cd2Tex      = {};
+const cd2Mat      = {};
+const cd2Canvases = {};
+const cd2UserTex      = {};
+const cd2UserMat      = {};
+const cd2UserCanvases = {};
+let cd2Group = null;
+
+const cdSoloAssets    = { front: null, back: null };
+const cdSoloTex       = {}, cdSoloMat       = {}, cdSoloCanvases    = {};
+const cdSoloUserTex   = {}, cdSoloUserMat   = {}, cdSoloUserCanvases = {};
+let cdSoloGroup = null;
+
+let renderer, scene, camera, controls, mesh, composer, grainPass, thresholdPass;
+const faceMats = {};
+const faceTex  = {};
+let frustumH = 3.2; // ortho viewport height in world units
+const canvasArea = document.getElementById('canvas-area');
+
+// ── Three.js init ─────────────────────────────────────────────────────────
+function initThree() {
+  RectAreaLightUniformsLib.init();
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(canvasArea.clientWidth, canvasArea.clientHeight);
+  renderer.outputColorSpace    = THREE.SRGBColorSpace;
+  renderer.toneMapping         = THREE.CineonToneMapping;
+  renderer.toneMappingExposure = 2.2;
+  document.getElementById('viewport').appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(state.bg);
+
+  // Environment map — neutral grey so clearcoat reflects uniformly from all angles
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const neutralScene = new THREE.Scene();
+  neutralScene.background = new THREE.Color(0x888888);
+  scene.environment = pmrem.fromScene(neutralScene).texture;
+  pmrem.dispose();
+
+  // Orthographic camera
+  const aspect = canvasArea.clientWidth / canvasArea.clientHeight;
+  camera = new THREE.OrthographicCamera(
+    -frustumH * aspect / 2,  frustumH * aspect / 2,
+     frustumH / 2,           -frustumH / 2,
+    0.1, 100
+  );
+  camera.position.set(0, 0, 10);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping  = true;
+  controls.dampingFactor  = 0.06;
+  controls.enablePan      = false;
+  controls.enableZoom     = true;
+  controls.minZoom        = 0.4;
+  controls.maxZoom        = 6;
+  controls.autoRotate     = true;
+  controls.autoRotateSpeed = state.speed * 2;
+  controls.target.set(0, 0, 0);
+
+  // Geometry + materials
+  const geo = new THREE.BoxGeometry(BOX_W, BOX_H, BOX_D);
+  const sideMat = buildMat('side');
+  mesh = new THREE.Mesh(geo, [
+    sideMat,                                                         // +X right
+    sideMat,                                                         // -X left (shared)
+    new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 1, metalness: 0 }), // +Y top
+    new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 1, metalness: 0 }), // -Y bottom
+    buildMat('front'),                                               // +Z front
+    buildMat('back'),                                                // -Z back
+  ]);
+  scene.add(mesh);
+
+  setupLighting('studio');
+
+  // ── Post-processing composer ──────────────────────────────────────────────
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+
+  grainPass = new ShaderPass({
+    uniforms: {
+      tDiffuse: { value: null },
+      amount:   { value: 0.08 },
+      time:     { value: 0.0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float amount;
+      uniform float time;
+      varying vec2 vUv;
+      float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898,78.233))) * 43758.5453); }
+      void main() {
+        vec4 c = texture2D(tDiffuse, vUv);
+        float n = (rand(vUv + time) * 2.0 - 1.0) * amount;
+        gl_FragColor = vec4(clamp(c.rgb + n, 0.0, 1.0), c.a);
+      }
+    `,
+  });
+  grainPass.enabled = false;
+  composer.addPass(grainPass);
+
+  thresholdPass = new ShaderPass({
+    uniforms: {
+      tDiffuse:  { value: null },
+      threshold: { value: 128.0 / 255.0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float threshold;
+      varying vec2 vUv;
+      void main() {
+        vec4 c = texture2D(tDiffuse, vUv);
+        float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        float v = step(threshold, lum);
+        gl_FragColor = vec4(v, v, v, c.a);
+      }
+    `,
+  });
+  thresholdPass.enabled = false;
+  composer.addPass(thresholdPass);
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function buildMat(face) {
+  const canvas = buildFaceCanvas(face);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace      = THREE.SRGBColorSpace;
+  tex.generateMipmaps = false;
+  tex.minFilter       = THREE.LinearFilter;
+  tex.magFilter       = THREE.LinearFilter;
+  faceTex[face] = tex;
+  const props = finishProps('plastic');
+  const mat = new THREE.MeshPhysicalMaterial({ map: tex, ...props });
+  faceMats[face] = mat;
+  return mat;
+}
+
+function finishProps(finish) {
+  return {
+    plastic: { roughness: 0.05, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.06, envMapIntensity: 1.2 },
+    matte:   { roughness: 0.92, metalness: 0.0, clearcoat: 0.0, clearcoatRoughness: 1.0,  envMapIntensity: 0.1 },
+  }[finish] ?? { roughness: 0.05, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.06, envMapIntensity: 1.2 };
+}
+
+function applyFinishToMaterials() {
+  const props = finishProps(state.finish);
+  Object.values(faceMats).forEach(mat => {
+    if (!mat || mat.type === 'MeshStandardMaterial' && !mat.isMeshPhysicalMaterial) return;
+    Object.assign(mat, props);
+    mat.needsUpdate = true;
+  });
+}
+
+let gifExporting = false;
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (gifExporting) return; // paused during deterministic GIF capture — see btn-gif handler
+  controls.autoRotate      = state.rotating;
+  controls.autoRotateSpeed = state.speed * 2;
+  controls.update();
+  if (grainPass) grainPass.uniforms.time.value = performance.now() * 0.001;
+  if (cdDiscMeshes.length) {
+    const az = controls.getAzimuthalAngle();
+    let delta = az - cdLastAzimuth;
+    if (delta > Math.PI) delta -= Math.PI * 2;
+    if (delta < -Math.PI) delta += Math.PI * 2;
+    cdDiscMeshes.forEach(m => m.rotation.z -= delta);
+    cdLastAzimuth = az;
+  }
+  composer.render();
+}
+
+function onResize() {
+  const aspect = canvasArea.clientWidth / canvasArea.clientHeight;
+  camera.left   = -frustumH * aspect / 2;
+  camera.right  =  frustumH * aspect / 2;
+  camera.top    =  frustumH / 2;
+  camera.bottom = -frustumH / 2;
+  camera.updateProjectionMatrix();
+  renderer.setSize(canvasArea.clientWidth, canvasArea.clientHeight);
+  if (composer) composer.setSize(canvasArea.clientWidth, canvasArea.clientHeight);
+}
+
+// ── Lighting ──────────────────────────────────────────────────────────────
+function setupLighting(preset) {
+  scene.children.filter(c => c.isLight).forEach(l => scene.remove(l));
+  const presets = {
+    studio: [
+      { type: 'ambient', color: 0xffffff, intensity: 1.2 },
+      // Strip light — front face, stacked narrow→wide for soft diffusion
+      { type: 'rect', color: 0xffffff, intensity: 3, w: 0.1, h: 8.0, pos: [2, 0,  3] },
+      { type: 'rect', color: 0xffffff, intensity: 2, w: 0.4, h: 8.0, pos: [2, 0,  3] },
+      { type: 'rect', color: 0xffffff, intensity: 1, w: 0.8, h: 8.0, pos: [2, 0,  3] },
+      // Strip light — back face, mirrored
+      { type: 'rect', color: 0xffffff, intensity: 3, w: 0.1, h: 8.0, pos: [2, 0, -3] },
+      { type: 'rect', color: 0xffffff, intensity: 2, w: 0.4, h: 8.0, pos: [2, 0, -3] },
+      { type: 'rect', color: 0xffffff, intensity: 1, w: 0.8, h: 8.0, pos: [2, 0, -3] },
+    ],
+    dramatic: [
+      { type: 'ambient', color: 0x111122,  intensity: 0.5 },
+      { type: 'dir',     color: 0xffffff,  intensity: 5.0, pos: [1.5, 3, 3] },
+      { type: 'point',   color: 0x4466ff,  intensity: 1.5, pos: [-2, -1, 2] },
+    ],
+    warm: [
+      { type: 'ambient', color: 0xff9955,  intensity: 1.0 },
+      { type: 'dir',     color: 0xffeecc,  intensity: 3.5, pos: [2, 3, 4] },
+      { type: 'dir',     color: 0xff6633,  intensity: 0.6, pos: [-2, -1, 1] },
+    ],
+    cool: [
+      { type: 'ambient', color: 0x3355aa,  intensity: 0.8 },
+      { type: 'dir',     color: 0xccddff,  intensity: 3.5, pos: [2, 3, 4] },
+      { type: 'dir',     color: 0x2244cc,  intensity: 0.6, pos: [-2, -1, 1] },
+    ],
+  };
+  (presets[preset] || presets.studio).forEach(cfg => {
+    if (cfg.type === 'ambient') {
+      scene.add(new THREE.AmbientLight(cfg.color, cfg.intensity));
+    } else if (cfg.type === 'dir') {
+      const l = new THREE.DirectionalLight(cfg.color, cfg.intensity);
+      l.position.set(...cfg.pos);
+      scene.add(l);
+    } else if (cfg.type === 'point') {
+      const l = new THREE.PointLight(cfg.color, cfg.intensity, 10);
+      l.position.set(...cfg.pos);
+      scene.add(l);
+    } else if (cfg.type === 'rect') {
+      const l = new THREE.RectAreaLight(cfg.color, cfg.intensity, cfg.w, cfg.h);
+      l.position.set(...cfg.pos);
+      l.lookAt(0, 0, 0);
+      l.rotateZ(30 * Math.PI / 180);
+      scene.add(l);
+    }
+  });
+}
+
+// ── Face canvas compositing ───────────────────────────────────────────────
+function buildFaceCanvas(face) {
+  const cfg = FACE_CFG[face];
+  const canvas = document.createElement('canvas');
+  canvas.width  = cfg.w;
+  canvas.height = cfg.h;
+  const ctx = canvas.getContext('2d');
+
+  // 1. White base (needed for multiply to render correctly)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, cfg.w, cfg.h);
+
+  // 2. Template (cassette artwork) with multiply blend
+  const tmpl = assets.template[face];
+  if (tmpl) {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(tmpl, 0, 0, cfg.w, cfg.h);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 2a. Base color — multiply over template so it tints the cassette body color
+  if (state.baseColor !== '#ffffff' && state.baseColor !== '#FFFFFF') {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = state.baseColor;
+    ctx.fillRect(0, 0, cfg.w, cfg.h);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 2b. Back-only: cassette color tint + mid-overlay (overlay blend),
+  //     sits above template but below user artwork
+  if (face === 'back' && assets.midOverlay) {
+    const ox = (cfg.w - cfg.ow) / 2;
+    const oy = (cfg.h - cfg.oh) / 2;
+    // Compose tinted mid-overlay in isolation so tint never bleeds onto lower layers
+    const off = document.createElement('canvas');
+    off.width = cfg.ow; off.height = cfg.oh;
+    const octx = off.getContext('2d');
+    // 1. Draw mid-overlay at full fidelity
+    octx.drawImage(assets.midOverlay, 0, 0, cfg.ow, cfg.oh);
+    // 2. Multiply cassette color on top to tint it
+    octx.globalCompositeOperation = 'multiply';
+    octx.fillStyle = state.cassetteColor;
+    octx.fillRect(0, 0, cfg.ow, cfg.oh);
+    // 3. Clip to mid-overlay's own alpha so nothing bleeds outside
+    octx.globalCompositeOperation = 'destination-in';
+    octx.drawImage(assets.midOverlay, 0, 0, cfg.ow, cfg.oh);
+    // 4. Composite onto main canvas with normal blend
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(off, ox, oy);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 3. User artwork — scaled to 98% so a sliver of base shows at edges
+  const art = userArt[face];
+  if (art) {
+    ctx.globalCompositeOperation = 'source-over';
+    const sc = 0.98;
+    if (face === 'back') {
+      const aw   = Math.round(cfg.w * BACK_ART_RATIO);
+      const ax   = cfg.w - aw;
+      const dw   = aw  * sc;
+      const dh   = cfg.h * sc;
+      const ddx  = ax + (aw  - dw) / 2;
+      const ddy  = (cfg.h - dh) / 2;
+      ctx.drawImage(art, ddx, ddy, dw, dh);
+    } else {
+      const dw  = cfg.w * sc;
+      const dh  = cfg.h * sc;
+      const ddx = (cfg.w - dw) / 2;
+      const ddy = (cfg.h - dh) / 2;
+      ctx.drawImage(art, ddx, ddy, dw, dh);
+    }
+  }
+
+  // 4. Overlay — multiply, centered
+  const ov = assets.overlay[face];
+  if (ov) {
+    const ox = (cfg.w - cfg.ow) / 2;
+    const oy = (cfg.h - cfg.oh) / 2;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(ov, ox, oy, cfg.ow, cfg.oh);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 5. Finish effects
+  if (state.finish === 'matte') {
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(0, 0, cfg.w, cfg.h);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  return canvas;
+}
+
+function addGrain(ctx, w, h) {
+  // Generate noise at reduced resolution, scale up for a film-grain look
+  const scale = 3;
+  const gw = Math.ceil(w / scale);
+  const gh = Math.ceil(h / scale);
+  const off = document.createElement('canvas');
+  off.width = gw; off.height = gh;
+  const octx = off.getContext('2d');
+  const id = octx.createImageData(gw, gh);
+  const d  = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 255;
+    d[i] = d[i+1] = d[i+2] = v;
+    d[i+3] = 28;
+  }
+  octx.putImageData(id, 0, 0);
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.drawImage(off, 0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function refreshFace(face) {
+  const tex = faceTex[face];
+  if (!tex) return;
+  tex.image = buildFaceCanvas(face);
+  tex.needsUpdate = true;
+}
+
+function refreshAllFaces() {
+  ['front', 'back', 'side'].forEach(refreshFace);
+}
+
+// ── Assets ────────────────────────────────────────────────────────────────
+function loadImg(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload  = () => res(img);
+    img.onerror = rej;
+    img.src = src;
+  });
+}
+
+async function loadAssets() {
+  const faces = ['front', 'back', 'side'];
+  await Promise.all([
+    ...faces.flatMap(f => [
+      loadImg(`${IMG_PATH}${f}.png`).then(img => { assets.template[f] = img; }).catch(() => {}),
+      loadImg(`${IMG_PATH}${f}-overlay.png`).then(img => { assets.overlay[f] = img; }).catch(() => {}),
+    ]),
+    loadImg(`${IMG_PATH}back-mid-overlay.png`).then(img => { assets.midOverlay = img; }).catch(() => {}),
+    loadImg(`${FLOPPY_IMG}base-front.png`).then(img => { floppyAssets.base = img; }).catch(e => console.warn('floppy base:', e)),
+    loadImg(`${FLOPPY_IMG}slider-front.png`).then(img => { floppyAssets.slider = img; }).catch(e => console.warn('floppy slider:', e)),
+    loadImg(`${FLOPPY_IMG}artwork-front.png`).then(img => { floppyAssets.artwork = img; }).catch(e => console.warn('floppy artwork:', e)),
+    loadImg(`${CD_IMG}front.png`).then(img => { cdAssets.front = img; }).catch(e => console.warn('cd front:', e)),
+    loadImg(`${CD_IMG}back.png`).then(img => { cdAssets.back = img; }).catch(e => console.warn('cd back:', e)),
+    loadImg(`${CD_IMG}overlay.png`).then(img => { cdAssets.overlay = img; }).catch(e => console.warn('cd overlay:', e)),
+    loadImg(`${CD_IMG}side.png`).then(img => { cdAssets.spineside = img; }).catch(e => console.warn('cd side:', e)),
+    loadImg(`${CD_IMG}top_bottom.png`).then(img => { cdAssets.topbottom = img; }).catch(e => console.warn('cd topbottom:', e)),
+    loadImg(`${CD_IMG}front-2.png`).then(img => { cd2Assets.front = img; }).catch(e => console.warn('cd2 front:', e)),
+    loadImg(`${CD_IMG}back-2.png`).then(img => { cd2Assets.back = img; }).catch(e => console.warn('cd2 back:', e)),
+    loadImg(`${CD_IMG}side-2.png`).then(img => { cd2Assets.side = img; }).catch(e => console.warn('cd2 side:', e)),
+    loadImg(`${CD_IMG}leftside-2.png`).then(img => { cd2Assets.leftside = img; }).catch(e => console.warn('cd2 leftside:', e)),
+    loadImg(`${CD_IMG}top_bottom-2.png`).then(img => { cd2Assets.topbottom = img; }).catch(e => console.warn('cd2 topbottom:', e)),
+    loadImg(`${CD_IMG}solo.png`).then(img => { cdSoloAssets.front = img; cdSoloAssets.back = img; }).catch(e => console.warn('cd solo:', e)),
+  ]);
+  refreshAllFaces();
+  if (floppyGroup) refreshAllFloppyFaces();
+  if (cdGroup) refreshAllCDFaces();
+  if (cd2Group) refreshAllCD2Faces();
+  if (cdSoloGroup) refreshAllSoloCDFaces();
+}
+
+// ── Floppy canvas compositing ─────────────────────────────────────────────
+function drawFloppyCanvas(canvas, face) {
+  const W = FLOPPY_W, H = FLOPPY_H;
+  const ctx = canvas.getContext('2d');
+  const isBack = face === 'back';
+
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.save();
+  if (isBack) { ctx.translate(W, 0); ctx.scale(-1, 1); }
+
+  // 1. Base PNG or dark fallback
+  if (floppyAssets.base) {
+    ctx.drawImage(floppyAssets.base, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 2. Base color tint via multiply, masked to existing alpha
+  if (state.floppyBaseColor && state.floppyBaseColor.toLowerCase() !== '#ffffff') {
+    const tint = document.createElement('canvas');
+    tint.width = W; tint.height = H;
+    const tc = tint.getContext('2d');
+    tc.fillStyle = state.floppyBaseColor;
+    tc.fillRect(0, 0, W, H);
+    tc.globalCompositeOperation = 'destination-in';
+    tc.drawImage(canvas, 0, 0); // clip tint to non-transparent pixels only
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(tint, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 3. Slider — color fill masked to slider alpha shape
+  if (floppyAssets.slider) {
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    const tc = tmp.getContext('2d');
+    tc.fillStyle = state.floppySliderColor || '#b0b0b0';
+    tc.fillRect(0, 0, W, H);
+    tc.globalCompositeOperation = 'destination-in';
+    tc.drawImage(floppyAssets.slider, 0, 0, W, H);
+    ctx.drawImage(tmp, 0, 0, W, H);
+  }
+
+  ctx.restore();
+
+  // 4. User label art (front only, not mirrored)
+  if (!isBack) {
+    if (floppyAssets.artwork) ctx.drawImage(floppyAssets.artwork, 0, 0, W, H);
+    if (userArt.label) ctx.drawImage(userArt.label, FLOPPY_ART.x, FLOPPY_ART.y, FLOPPY_ART.w, FLOPPY_ART.h);
+  }
+}
+
+function refreshFloppyFace(face) {
+  const tex = floppyTex[face];
+  const canvas = floppyCanvases[face];
+  if (!tex || !canvas) { console.warn('refreshFloppyFace: missing tex/canvas for', face, tex, canvas); return; }
+  try {
+    drawFloppyCanvas(canvas, face);
+    tex.needsUpdate = true;
+  } catch(e) {
+    console.error('refreshFloppyFace failed:', face, e);
+  }
+}
+
+function refreshAllFloppyFaces() { ['front','back'].forEach(refreshFloppyFace); }
+
+
+// ── CD config registry ────────────────────────────────────────────────────
+// To add a new CD version: define constants above, add an entry here,
+// add thin wrappers at the bottom of this section, wire up the UI.
+const CD_CONFIGS = {};
+
+CD_CONFIGS.cd1 = {
+  W: CD_W, H: CD_H,
+  BOX_W: CD_BOX_W, BOX_H: CD_BOX_H, BOX_D: CD_BOX_D,
+  disc: CD_DISC,
+  bodyType:     'roundedRect',
+  cornerR:      CD_CORNER_R,
+  getAssets:    () => cdAssets,
+  getBaseColor: () => state.cdBaseColor,
+  getFinish:    () => state.cdFinish,
+  getOverlay:   () => cdAssets.overlay,
+  getSpine:     () => userArt.cdSpine,
+  spine:        CD_SPINE,
+  getUserDisc:  () => userArt.cdDisc,
+  iridTexUrl:   'CD/cd-base-irridescent.png',
+  canvases: cdCanvases, tex: cdTex, mat: cdMat,
+  userCanvases: cdUserCanvases, userTex: cdUserTex, userMat: cdUserMat,
+  overlayCanvases: cdOverlayCanvases, overlayTex: cdOverlayTex, overlayMat: cdOverlayMat,
+  setGroup: g => { cdGroup = g; },
+  sides: [
+    { name: 'spineside', getAsset: () => cdAssets.spineside,  rotY: -Math.PI / 2, xPosSign: -1, canvasW: 76,   canvasH: 1000, getUserArt: () => userArt.cdSide1 },
+    { name: 'rightside', getAsset: () => cdAssets.topbottom,  rotY:  Math.PI / 2, xPosSign:  1, canvasW: 76,   canvasH: 1000 },
+    { name: 'top',       getAsset: () => cdAssets.topbottom,  rotX: -Math.PI / 2, yPosSign:  1, canvasW: 1000, canvasH: 62   },
+    { name: 'bottom',    getAsset: () => cdAssets.topbottom,  rotX:  Math.PI / 2, yPosSign: -1, canvasW: 1000, canvasH: 62   },
+  ],
+};
+
+CD_CONFIGS.cd2 = {
+  W: CD2_W, H: CD2_H,
+  BOX_W: CD2_BOX_W, BOX_H: CD2_BOX_H, BOX_D: CD2_BOX_D,
+  disc: CD2_DISC,
+  bodyType: 'svg',
+  svgPath: CD2_SVG_PATH, svgW: CD2_SVG_W, svgH: CD2_SVG_H,
+  getAssets:    () => cd2Assets,
+  getBaseColor: () => state.cd2BaseColor,
+  getFinish:    () => state.cd2Finish,
+  getOverlay:   null,
+  getSpine:     null,
+  spine:        null,
+  getUserDisc:  () => userArt.cdDisc2,
+  iridTexUrl:   'CD/cd-base-irridescent-4.png',
+  canvases: cd2Canvases, tex: cd2Tex, mat: cd2Mat,
+  userCanvases: cd2UserCanvases, userTex: cd2UserTex, userMat: cd2UserMat,
+  overlayCanvases: null, overlayTex: null, overlayMat: null,
+  setGroup: g => { cd2Group = g; },
+  sides: [
+    { name: 'side',     getAsset: () => cd2Assets.side,      rotY: -Math.PI / 2, xPosSign: -1, canvasW: 76,   canvasH: 1000 },
+    { name: 'leftside', getAsset: () => cd2Assets.leftside,  rotY:  Math.PI / 2, xPosSign:  1, canvasW: 76,   canvasH: 1000 },
+    { name: 'top',      getAsset: () => cd2Assets.topbottom, rotX: -Math.PI / 2, yPosSign:  1, canvasW: 1000, canvasH: 68   },
+    { name: 'bottom',   getAsset: () => cd2Assets.topbottom, rotX:  Math.PI / 2, yPosSign: -1, canvasW: 1000, canvasH: 68   },
+  ],
+};
+
+CD_CONFIGS.solo = {
+  bodyType: 'disc',
+  outerR:   CD_SOLO_OUTER_R,
+  innerR:   CD_SOLO_INNER_R,
+  BOX_D:    CD_SOLO_BOX_D,
+  BOX_W:    CD_SOLO_OUTER_R * 2,
+  BOX_H:    CD_SOLO_OUTER_R * 2,
+  W:        CD_SOLO_CANVAS,
+  H:        CD_SOLO_CANVAS,
+  userOuterFrac: CD_SOLO_USER_OUTER_F,
+  userInnerFrac: CD_SOLO_USER_INNER_F,
+  disc: {
+    cx: CD_SOLO_CANVAS / 2, cy: CD_SOLO_CANVAS / 2,
+    outerW: CD_SOLO_CANVAS, outerH: CD_SOLO_CANVAS,
+    innerR: (CD_SOLO_INNER_R / CD_SOLO_OUTER_R) * (CD_SOLO_CANVAS / 2),
+  },
+  getAssets:    () => cdSoloAssets,
+  getBaseColor: () => state.cdSoloBaseColor,
+  getFinish:    () => state.cdSoloFinish,
+  getOverlay:   null, getSpine: null, spine: null,
+  getUserDisc:  () => userArt.cdDiscSolo,
+  iridTexUrl:   'CD/cd-base-irridescent.png',
+  canvases: cdSoloCanvases, tex: cdSoloTex, mat: cdSoloMat,
+  userCanvases: cdSoloUserCanvases, userTex: cdSoloUserTex, userMat: cdSoloUserMat,
+  overlayCanvases: null, overlayTex: null, overlayMat: null,
+  setGroup: g => { cdSoloGroup = g; },
+  sides: [],
+};
+
+// ── Shared CD canvas helpers ──────────────────────────────────────────────
+function applyClip(ctx, W, H, cfg) {
+  if (cfg.bodyType === 'roundedRect') {
+    const r = Math.round(cfg.cornerR / cfg.BOX_W * W);
+    ctx.beginPath(); ctx.roundRect(0, 0, W, H, r); ctx.clip();
+  } else if (cfg.bodyType === 'disc') {
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, W / 2, 0, Math.PI * 2); ctx.clip();
+  } else {
+    const p = new Path2D();
+    p.addPath(new Path2D(cfg.svgPath), new DOMMatrix().scale(W / cfg.svgW, H / cfg.svgH));
+    ctx.clip(p);
+  }
+}
+
+function drawCDBaseCanvas(canvas, face, cfg) {
+  const W = cfg.W, H = cfg.H;
+  const ctx = canvas.getContext('2d');
+  const isBack = face === 'back';
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  applyClip(ctx, W, H, cfg);
+
+  const assets = cfg.getAssets();
+  const baseImg = isBack ? assets.back : assets.front;
+  if (baseImg) {
+    if (isBack) { ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1); ctx.drawImage(baseImg, 0, 0, W, H); ctx.restore(); }
+    else          ctx.drawImage(baseImg, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#d0d8e0'; ctx.fillRect(0, 0, W, H);
+  }
+
+  const baseColor = cfg.getBaseColor();
+  if (baseColor && baseColor.toLowerCase() !== '#ffffff') {
+    const tint = document.createElement('canvas');
+    tint.width = W; tint.height = H;
+    const tc = tint.getContext('2d');
+    tc.fillStyle = baseColor; tc.fillRect(0, 0, W, H);
+    tc.globalCompositeOperation = 'destination-in'; tc.drawImage(canvas, 0, 0);
+    ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(tint, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  ctx.restore();
+}
+
+function drawCDOverlayCanvas(canvas, face, cfg) {
+  if (!cfg.getOverlay) return;
+  const W = cfg.W, H = cfg.H;
+  const ctx = canvas.getContext('2d');
+  const isBack = face === 'back';
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  applyClip(ctx, W, H, cfg);
+  const overlay = cfg.getOverlay();
+  if (overlay) {
+    if (isBack) { ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1); ctx.drawImage(overlay, 0, 0, W, H); ctx.restore(); }
+    else          ctx.drawImage(overlay, 0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+function drawCDUserArtCanvas(canvas, face, cfg) {
+  const W = cfg.W, H = cfg.H;
+  const ctx = canvas.getContext('2d');
+  const isBack = face === 'back';
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  applyClip(ctx, W, H, cfg);
+
+  if (cfg.bodyType === 'disc') {
+    if (!isBack && cfg.getUserDisc) {
+      const discImg = cfg.getUserDisc();
+      if (discImg) {
+        const cx = W / 2, cy = H / 2;
+        const outerPx = (W / 2) * cfg.userOuterFrac;
+        const innerPx = (W / 2) * cfg.userInnerFrac;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerPx, 0, Math.PI * 2);
+        ctx.arc(cx, cy, innerPx, 0, Math.PI * 2, true);
+        ctx.clip('evenodd');
+        ctx.drawImage(discImg, cx - outerPx, cy - outerPx, outerPx * 2, outerPx * 2);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+    return;
+  }
+
+  if (cfg.getSpine && cfg.spine) {
+    const spineImg = cfg.getSpine();
+    if (spineImg) {
+      const sx = isBack ? (W - cfg.spine.x - cfg.spine.w) : cfg.spine.x;
+      ctx.drawImage(spineImg, sx, cfg.spine.y, cfg.spine.w, cfg.spine.h);
+    }
+  }
+
+  if (!isBack && cfg.getUserDisc) {
+    const discImg = cfg.getUserDisc();
+    if (discImg) {
+      const { cx, cy, outerW, outerH, innerR } = cfg.disc;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, outerW / 2, outerH / 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, innerR, innerR, 0, 0, Math.PI * 2, true);
+      ctx.clip('evenodd');
+      ctx.drawImage(discImg, cx - outerW / 2, cy - outerH / 2, outerW, outerH);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+function drawCDSideCanvas(canvas, sideCfg, cfg) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const img = sideCfg.getAsset();
+  if (img) ctx.drawImage(img, 0, 0, W, H);
+  else { ctx.fillStyle = '#d0d8e0'; ctx.fillRect(0, 0, W, H); }
+  const baseColor = cfg.getBaseColor();
+  if (baseColor && baseColor.toLowerCase() !== '#ffffff') {
+    const tint = document.createElement('canvas');
+    tint.width = W; tint.height = H;
+    const tc = tint.getContext('2d');
+    tc.fillStyle = baseColor; tc.fillRect(0, 0, W, H);
+    tc.globalCompositeOperation = 'destination-in'; tc.drawImage(canvas, 0, 0);
+    ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(tint, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // User art drawn on top, unaffected by tint
+  if (sideCfg.getUserArt) {
+    const userImg = sideCfg.getUserArt();
+    if (userImg) ctx.drawImage(userImg, 0, 0, W, H);
+  }
+}
+
+function makeCanvasTex(canvas) {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.generateMipmaps = false;
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
+// ── Shared CD refresh / finish / build ───────────────────────────────────
+function refreshCDFaceFor(face, cfg) {
+  const tex = cfg.tex[face];
+  const canvas = cfg.canvases[face];
+  if (!tex || !canvas) return;
+  try {
+    const sideCfg = cfg.sides.find(s => s.name === face);
+    if (sideCfg) {
+      drawCDSideCanvas(canvas, sideCfg, cfg);
+    } else {
+      drawCDBaseCanvas(canvas, face, cfg);
+    }
+    tex.needsUpdate = true;
+  } catch(e) { console.error('refreshCDFaceFor failed:', face, e); }
+
+  const uTex = cfg.userTex[face];
+  const uCanvas = cfg.userCanvases[face];
+  if (uTex && uCanvas) {
+    try { drawCDUserArtCanvas(uCanvas, face, cfg); uTex.needsUpdate = true; }
+    catch(e) { console.error('refreshCDFaceFor user failed:', face, e); }
+  }
+  const oTex = cfg.overlayTex && cfg.overlayTex[face];
+  const oCanvas = cfg.overlayCanvases && cfg.overlayCanvases[face];
+  if (oTex && oCanvas) {
+    try { drawCDOverlayCanvas(oCanvas, face, cfg); oTex.needsUpdate = true; }
+    catch(e) { console.error('refreshCDFaceFor overlay failed:', face, e); }
+  }
+}
+
+function refreshAllCDFacesFor(cfg) {
+  ['front', 'back', ...cfg.sides.map(s => s.name)].forEach(f => refreshCDFaceFor(f, cfg));
+}
+
+function applyFinishToCDFor(cfg) {
+  ['front', 'back'].forEach(face => { if (cfg.mat[face]) cfg.mat[face].needsUpdate = true; });
+  cfg.sides.forEach(({ name }) => {
+    const m = cfg.mat[name];
+    if (m) { Object.assign(m, finishProps(cfg.getFinish())); m.needsUpdate = true; }
+  });
+}
+
+function buildCDGroupFromConfig(cfg) {
+  let bodyGeo;
+  if (cfg.bodyType === 'disc') {
+    const outerShape = new THREE.Shape();
+    outerShape.absarc(0, 0, cfg.outerR, 0, Math.PI * 2, false);
+    const hole = new THREE.Path();
+    hole.absarc(0, 0, cfg.innerR, 0, Math.PI * 2, true);
+    outerShape.holes.push(hole);
+    bodyGeo = new THREE.ExtrudeGeometry(outerShape, { depth: cfg.BOX_D, bevelEnabled: false, curveSegments: 128 });
+    bodyGeo.translate(0, 0, -cfg.BOX_D / 2);
+  } else if (cfg.bodyType === 'roundedRect') {
+    const shape = makeRoundedRectShape(cfg.BOX_W, cfg.BOX_H, cfg.cornerR);
+    bodyGeo = new THREE.ExtrudeGeometry(shape, { depth: cfg.BOX_D, bevelEnabled: false });
+    bodyGeo.translate(0, 0, -cfg.BOX_D / 2);
+  } else {
+    const loader = new SVGLoader();
+    const svgData = loader.parse(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cfg.svgW} ${cfg.svgH}"><path d="${cfg.svgPath}"/></svg>`);
+    const shapes = [];
+    for (const path of svgData.paths) shapes.push(...SVGLoader.createShapes(path));
+    const svgScale = cfg.BOX_H / cfg.svgH;
+    const depthSvg = cfg.BOX_D / svgScale;
+    bodyGeo = new THREE.ExtrudeGeometry(shapes, { depth: depthSvg, bevelEnabled: false });
+    bodyGeo.computeBoundingBox();
+    const { min: eMin, max: eMax } = bodyGeo.boundingBox;
+    bodyGeo.translate(-(eMin.x + eMax.x) / 2, -(eMin.y + eMax.y) / 2, -depthSvg / 2);
+    bodyGeo.scale(1, -1, -1);
+    bodyGeo.computeVertexNormals();
+  }
+
+  const edgeMat = new THREE.MeshPhysicalMaterial({
+    color: 0x2a2a2a, roughness: 0.15, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.05,
+  });
+  const bodyMesh = new THREE.Mesh(bodyGeo, edgeMat);
+  if (cfg.bodyType === 'svg') bodyMesh.scale.setScalar(cfg.BOX_H / cfg.svgH);
+
+  function makeRingGeoWithUV(innerR, outerR, uvNorm) {
+    const geo = new THREE.RingGeometry(innerR, outerR, 128);
+    const pos = geo.attributes.position;
+    const uv  = geo.attributes.uv;
+    const n   = uvNorm || outerR;
+    for (let i = 0; i < pos.count; i++)
+      uv.setXY(i, (pos.getX(i) / n + 1) / 2, (pos.getY(i) / n + 1) / 2);
+    uv.needsUpdate = true;
+    return geo;
+  }
+
+  function makeFacePlane(face) {
+    const canvas = document.createElement('canvas');
+    canvas.width = cfg.W; canvas.height = cfg.H;
+    cfg.canvases[face] = canvas;
+    drawCDBaseCanvas(canvas, face, cfg);
+    const tex = makeCanvasTex(canvas);
+    cfg.tex[face] = tex;
+    const isDisc = cfg.bodyType === 'disc';
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: tex, transparent: true,
+      roughness: isDisc ? 0.08 : 0.25, metalness: isDisc ? 0.8 : 0.2,
+      clearcoat: isDisc ? 1.0 : 0.8, clearcoatRoughness: isDisc ? 0.03 : 0.1,
+      envMapIntensity: isDisc ? 2.0 : 1.0,
+    });
+    cfg.mat[face] = mat;
+    const geo = isDisc
+      ? makeRingGeoWithUV(cfg.innerR, cfg.outerR)
+      : new THREE.PlaneGeometry(cfg.BOX_W, cfg.BOX_H);
+    return new THREE.Mesh(geo, mat);
+  }
+
+  function makeUserPlane(face) {
+    const canvas = document.createElement('canvas');
+    canvas.width = cfg.W; canvas.height = cfg.H;
+    cfg.userCanvases[face] = canvas;
+    drawCDUserArtCanvas(canvas, face, cfg);
+    const tex = makeCanvasTex(canvas);
+    cfg.userTex[face] = tex;
+    const isDisc = cfg.bodyType === 'disc';
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: tex, transparent: true,
+      roughness: isDisc ? 0.02 : 0.05, metalness: isDisc ? 1.0 : 0.9,
+      clearcoat: 1.0, clearcoatRoughness: 0.0, envMapIntensity: isDisc ? 3.0 : 2.0,
+    });
+    cfg.userMat[face] = mat;
+    const geo = isDisc
+      ? makeRingGeoWithUV(cfg.outerR * cfg.userInnerFrac, cfg.outerR * cfg.userOuterFrac, cfg.outerR)
+      : new THREE.PlaneGeometry(cfg.BOX_W, cfg.BOX_H);
+    return new THREE.Mesh(geo, mat);
+  }
+
+  function makeOverlayPlane(face) {
+    if (!cfg.getOverlay || !cfg.overlayCanvases) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = cfg.W; canvas.height = cfg.H;
+    cfg.overlayCanvases[face] = canvas;
+    drawCDOverlayCanvas(canvas, face, cfg);
+    const tex = makeCanvasTex(canvas);
+    cfg.overlayTex[face] = tex;
+    const mat = new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.25, metalness: 0.2, clearcoat: 0.8, clearcoatRoughness: 0.1, envMapIntensity: 1.0 });
+    cfg.overlayMat[face] = mat;
+    return new THREE.Mesh(new THREE.PlaneGeometry(cfg.BOX_W, cfg.BOX_H), mat);
+  }
+
+  const frontPlane      = makeFacePlane('front');
+  frontPlane.position.z  = cfg.BOX_D / 2 + 0.001;
+  const frontUserPlane   = makeUserPlane('front');
+  frontUserPlane.position.z = cfg.BOX_D / 2 + 0.002;
+  const frontOverlayPlane = makeOverlayPlane('front');
+  if (frontOverlayPlane) frontOverlayPlane.position.z = cfg.BOX_D / 2 + 0.003;
+
+  const backPlane       = makeFacePlane('back');
+  backPlane.position.z   = -(cfg.BOX_D / 2 + 0.001);
+  backPlane.rotation.y   = Math.PI;
+  const backUserPlane    = makeUserPlane('back');
+  backUserPlane.position.z = -(cfg.BOX_D / 2 + 0.002);
+  backUserPlane.rotation.y = Math.PI;
+  const backOverlayPlane = makeOverlayPlane('back');
+  if (backOverlayPlane) { backOverlayPlane.position.z = -(cfg.BOX_D / 2 + 0.003); backOverlayPlane.rotation.y = Math.PI; }
+
+  const sideMeshes = cfg.sides.map(sideCfg => {
+    const canvas = document.createElement('canvas');
+    canvas.width = sideCfg.canvasW; canvas.height = sideCfg.canvasH;
+    cfg.canvases[sideCfg.name] = canvas;
+    drawCDSideCanvas(canvas, sideCfg, cfg);
+    const tex = makeCanvasTex(canvas);
+    cfg.tex[sideCfg.name] = tex;
+    const mat = new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, ...finishProps(cfg.getFinish()) });
+    cfg.mat[sideCfg.name] = mat;
+    const isTopBottom = sideCfg.rotX !== undefined;
+    const planeW = isTopBottom ? cfg.BOX_W : cfg.BOX_D;
+    const planeH = isTopBottom ? cfg.BOX_D : cfg.BOX_H;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), mat);
+    if (isTopBottom) {
+      mesh.rotation.x = sideCfg.rotX;
+      mesh.position.y = sideCfg.yPosSign * (cfg.BOX_H / 2 + 0.001);
+    } else {
+      mesh.rotation.y = sideCfg.rotY;
+      mesh.position.x = sideCfg.xPosSign * (cfg.BOX_W / 2 + 0.001);
+    }
+    return mesh;
+  });
+
+  // Iridescent disc on back face
+  let discGeo, discMeshX = 0, discMeshY = 0, discMeshZ;
+  if (cfg.bodyType === 'disc') {
+    // For solo disc: irid ring matches user art ring dimensions, UV aligned with face texture
+    const iridInner = cfg.outerR * cfg.userInnerFrac;
+    const iridOuter = cfg.outerR * cfg.userOuterFrac;
+    discGeo = makeRingGeoWithUV(iridInner, iridOuter, cfg.outerR);
+    discMeshZ = -(cfg.BOX_D / 2 + 0.002);
+  } else {
+    const discInnerR = (cfg.disc.innerR / cfg.H) * cfg.BOX_H;
+    const discOuterR = (cfg.disc.outerW / 2 / cfg.W) * cfg.BOX_W;
+    const discX = (cfg.disc.cx / cfg.W - 0.5) * cfg.BOX_W;
+    const discY = (0.5 - cfg.disc.cy / cfg.H) * cfg.BOX_H;
+    discGeo = new THREE.RingGeometry(discInnerR, discOuterR, 128);
+    discMeshZ = -(cfg.BOX_D / 2 + 0.002);
+    // remap UVs to disc artwork position in image
+    const posAttr = discGeo.attributes.position;
+    const uvAttr  = discGeo.attributes.uv;
+    for (let i = 0; i < posAttr.count; i++) {
+      const rx = posAttr.getX(i) / discOuterR;
+      const ry = posAttr.getY(i) / discOuterR;
+      uvAttr.setXY(i,
+        (cfg.disc.cx + rx * cfg.disc.outerW / 2) / cfg.W,
+        (cfg.disc.cy - ry * cfg.disc.outerH / 2) / cfg.H
+      );
+    }
+    discGeo.attributes.uv.needsUpdate = true;
+    // restore original positioning via mesh.position (not geometry translate)
+    discMeshX = discX;
+    discMeshY = discY;
+  }
+
+  const iridTex = new THREE.TextureLoader().load(cfg.iridTexUrl);
+  iridTex.colorSpace = THREE.SRGBColorSpace;
+  iridTex.flipY = false;
+
+  const discMat = new THREE.MeshPhysicalMaterial({
+    map: iridTex, roughness: 0.05, metalness: 0.9,
+    clearcoat: 1.0, clearcoatRoughness: 0.0,
+    envMapIntensity: 2.0, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  });
+  const discMesh = new THREE.Mesh(discGeo, discMat);
+  discMesh.position.set(discMeshX, discMeshY, discMeshZ);
+  cdDiscMeshes.push(discMesh);
+  cfg.discMeshRef = discMesh;
+
+  const group = new THREE.Group();
+  const overlayMeshes = [frontOverlayPlane, backOverlayPlane].filter(Boolean);
+
+  // Tag meshes so switchCDCase can show/hide selectively
+  bodyMesh.userData.cdRole = 'body';
+  [frontPlane, backPlane, frontUserPlane, backUserPlane, ...overlayMeshes].forEach(m => { if (m) m.userData.cdRole = 'face'; });
+  sideMeshes.forEach(m => { m.userData.cdRole = 'side'; });
+  discMesh.userData.cdRole = 'disc';
+
+  group.add(bodyMesh, frontPlane, backPlane, frontUserPlane, backUserPlane, ...overlayMeshes, ...sideMeshes, discMesh);
+  group.visible = false;
+  scene.add(group);
+  cfg.setGroup(group);
+}
+
+// ── Thin wrappers (preserve existing call sites) ──────────────────────────
+function refreshCDFace(face)      { refreshCDFaceFor(face, CD_CONFIGS.cd1); }
+function refreshAllCDFaces()      { refreshAllCDFacesFor(CD_CONFIGS.cd1); }
+function applyFinishToCD()        { applyFinishToCDFor(CD_CONFIGS.cd1); }
+function buildCDGroup()           { buildCDGroupFromConfig(CD_CONFIGS.cd1); }
+function refreshCD2Face(face)     { refreshCDFaceFor(face, CD_CONFIGS.cd2); }
+function refreshAllCD2Faces()     { refreshAllCDFacesFor(CD_CONFIGS.cd2); }
+function applyFinishToCD2()       { applyFinishToCDFor(CD_CONFIGS.cd2); }
+function buildCD2Group()          { buildCDGroupFromConfig(CD_CONFIGS.cd2); }
+function refreshSoloCDFace(face)  { refreshCDFaceFor(face, CD_CONFIGS.solo); }
+function refreshAllSoloCDFaces()  { refreshAllCDFacesFor(CD_CONFIGS.solo); }
+function applyFinishToSoloCD()    { applyFinishToCDFor(CD_CONFIGS.solo); }
+function buildSoloCDGroup()       { buildCDGroupFromConfig(CD_CONFIGS.solo); }
+
+// ── Rounded-rectangle shape helper ───────────────────────────────────────
+function makeRoundedRectShape(w, h, r) {
+  const shape = new THREE.Shape();
+  const x = -w / 2, y = -h / 2;
+  shape.moveTo(x + r, y);
+  shape.lineTo(x + w - r, y);
+  shape.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  shape.lineTo(x + w, y + h - r);
+  shape.absarc(x + w - r, y + h - r, r, 0, Math.PI / 2, false);
+  shape.lineTo(x + r, y + h);
+  shape.absarc(x + r, y + h - r, r, Math.PI / 2, Math.PI, false);
+  shape.lineTo(x, y + r);
+  shape.absarc(x + r, y + r, r, Math.PI, Math.PI * 3 / 2, false);
+  return shape;
+}
+
+
+// ── Floppy 3D geometry ────────────────────────────────────────────────────
+function buildFloppyGroup() {
+  const loader = new SVGLoader();
+  const svgData = loader.parse(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FLOPPY_SVG_W} ${FLOPPY_SVG_H}"><path d="${FLOPPY_SVG_PATH}"/></svg>`);
+  const shapes = [];
+  for (const path of svgData.paths) shapes.push(...SVGLoader.createShapes(path));
+
+  // Extruded sides
+  const extGeo = new THREE.ExtrudeGeometry(shapes, {
+    depth: FLOPPY_DEPTH, bevelEnabled: true,
+    bevelThickness: 1.5, bevelSize: 1, bevelOffset: 0, bevelSegments: 4,
+  });
+  extGeo.computeBoundingBox();
+  const { min: eMin, max: eMax } = extGeo.boundingBox;
+  extGeo.translate(-(eMin.x+eMax.x)/2, -(eMin.y+eMax.y)/2, -FLOPPY_DEPTH/2);
+  extGeo.scale(1, -1, -1); // flip Y for SVG coords, flip Z so front faces camera
+  extGeo.computeVertexNormals();
+  const sidesMesh = new THREE.Mesh(extGeo,
+    new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95, metalness: 0 }));
+  sidesMesh.scale.setScalar(FLOPPY_SCALE);
+
+  // Face planes: PlaneGeometry sized to SVG dims (clean UVs, no manual flip needed)
+  function makeFacePlane(face) {
+    const geo = new THREE.PlaneGeometry(FLOPPY_SVG_W, FLOPPY_SVG_H);
+    const canvas = document.createElement('canvas');
+    canvas.width = FLOPPY_W; canvas.height = FLOPPY_H;
+    floppyCanvases[face] = canvas;
+    drawFloppyCanvas(canvas, face);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.generateMipmaps = false;
+    tex.minFilter = tex.magFilter = THREE.LinearFilter;
+    floppyTex[face] = tex;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+    floppyMat[face] = mat;
+    return new THREE.Mesh(geo, mat);
+  }
+
+  const frontMesh = makeFacePlane('front');
+  frontMesh.scale.setScalar(FLOPPY_SCALE);
+  frontMesh.position.z = (FLOPPY_DEPTH/2 + 2) * FLOPPY_SCALE;
+
+  const backMesh = makeFacePlane('back');
+  backMesh.scale.setScalar(FLOPPY_SCALE);
+  backMesh.rotation.y = Math.PI;
+  backMesh.position.z = -(FLOPPY_DEPTH/2 + 2) * FLOPPY_SCALE;
+
+  floppyGroup = new THREE.Group();
+  floppyGroup.add(sidesMesh, frontMesh, backMesh);
+  floppyGroup.visible = false;
+  scene.add(floppyGroup);
+}
+
+
+// ── CD case / back switchers ──────────────────────────────────────────────
+function switchCDCase(caseType) {
+  state.cdCase = caseType;
+  const isNone  = caseType === 'none';
+  const isBasic = caseType === 'basic';
+  const isClear = caseType === 'clear';
+  const isSolo  = caseType === 'solo';
+
+  if ((isBasic || isNone) && !cdGroup)  buildCDGroup();
+  if (isClear               && !cd2Group) buildCD2Group();
+  if (isSolo                && !cdSoloGroup) buildSoloCDGroup();
+
+  if (cdGroup)     cdGroup.visible     = isBasic || isNone;
+  if (cd2Group)    cd2Group.visible    = isClear;
+  if (cdSoloGroup) cdSoloGroup.visible = isSolo;
+
+  // For 'none': show only the disc ring, hide body + face planes
+  if (cdGroup) {
+    cdGroup.children.forEach(child => {
+      const role = child.userData.cdRole;
+      child.visible = isNone ? role === 'disc' : true;
+    });
+  }
+
+  if (isBasic) refreshAllCDFaces();
+  if (isClear) refreshAllCD2Faces();
+  if (isSolo)  refreshAllSoloCDFaces();
+
+  // Upload rows
+  document.getElementById('upload-row-cd-spine').style.display     = isBasic ? '' : 'none';
+  document.getElementById('upload-row-cd-side-1').style.display    = isBasic ? '' : 'none';
+  document.getElementById('upload-row-cd-disc').style.display      = isBasic ? '' : 'none';
+  document.getElementById('upload-row-cd-disc-2').style.display    = isClear ? '' : 'none';
+  document.getElementById('upload-row-cd-disc-solo').style.display = isSolo  ? '' : 'none';
+
+  // Highlight active case button
+  ['none','basic','clear','solo'].forEach(k => {
+    const btn = document.getElementById(`cd-case-${k}`);
+    if (btn) btn.style.borderColor = k === caseType ? 'var(--accent)' : 'transparent';
+  });
+}
+
+function switchCDBack(backNum) {
+  state.cdBack = backNum;
+  const url = backNum === '1' ? 'CD/cd-base-irridescent.png' : `CD/cd-base-irridescent-${backNum}.png`;
+
+  // Update all disc meshes so switching case still looks right
+  [CD_CONFIGS.cd1, CD_CONFIGS.cd2, CD_CONFIGS.solo].forEach(cfg => {
+    if (cfg.discMeshRef) {
+      const newTex = new THREE.TextureLoader().load(url);
+      newTex.colorSpace = THREE.SRGBColorSpace;
+      newTex.flipY = false;
+      cfg.discMeshRef.material.map = newTex;
+      cfg.discMeshRef.material.needsUpdate = true;
+    }
+  });
+
+  // Highlight active back button
+  ['1','2','3','4'].forEach(k => {
+    const btn = document.getElementById(`cd-back-${k}`);
+    if (btn) btn.style.borderColor = k === backNum ? 'var(--accent)' : 'transparent';
+  });
+}
+
+// ── Media switching ───────────────────────────────────────────────────────
+function switchMedia(type) {
+  if (state.mediaType === type) return;
+  state.mediaType = type;
+  const isCassette = type === 'cassette';
+  const isFloppy   = type === 'floppy';
+  const isCD       = type === 'cd';
+
+  if (mesh) mesh.visible = isCassette;
+
+  if (isFloppy && !floppyGroup) buildFloppyGroup();
+  if (floppyGroup) { floppyGroup.visible = isFloppy; if (isFloppy) refreshAllFloppyFaces(); }
+
+  // Hide all CD groups first, then let switchCDCase show the right one
+  if (cdGroup)     cdGroup.visible     = false;
+  if (cd2Group)    cd2Group.visible    = false;
+  if (cdSoloGroup) cdSoloGroup.visible = false;
+  if (isCD) switchCDCase(state.cdCase);
+
+  // Upload rows
+  ['front','side','back'].forEach(f => {
+    document.getElementById(`upload-row-${f}`).style.display = isCassette ? '' : 'none';
+  });
+  document.getElementById('upload-row-label').style.display     = isFloppy ? '' : 'none';
+  // CD upload rows handled by switchCDCase; hide all when not CD
+  if (!isCD) {
+    document.getElementById('upload-row-cd-spine').style.display     = 'none';
+    document.getElementById('upload-row-cd-side-1').style.display    = 'none';
+    document.getElementById('upload-row-cd-disc').style.display      = 'none';
+    document.getElementById('upload-row-cd-disc-2').style.display    = 'none';
+    document.getElementById('upload-row-cd-disc-solo').style.display = 'none';
+  }
+
+  // CD case/back sections
+  document.getElementById('cd-case-ctrl').style.display = isCD ? '' : 'none';
+  document.getElementById('cd-back-ctrl').style.display = isCD ? '' : 'none';
+
+  // Color rows
+  document.getElementById('color-row-tint').style.display     = isCassette ? '' : 'none';
+  document.getElementById('color-row-cassette').style.display = isCassette ? '' : 'none';
+  document.getElementById('color-row-slider').style.display   = isFloppy   ? '' : 'none';
+
+  // Finish
+  document.getElementById('finish-group').style.display = isFloppy ? 'none' : '';
+  if (!isFloppy) {
+    const activeFinish = isCD ? (state.cdCase === 'clear' ? state.cd2Finish : state.cdCase === 'solo' ? state.cdSoloFinish : state.cdFinish) : state.finish;
+    ['plastic','matte'].forEach(k =>
+      document.getElementById(`finish-${k}`).classList.toggle('active', k === activeFinish)
+    );
+  }
+
+  // Sync base-color
+  const baseVal = isFloppy ? state.floppyBaseColor
+    : isCD ? (state.cdCase === 'clear' ? state.cd2BaseColor : state.cdCase === 'solo' ? state.cdSoloBaseColor : state.cdBaseColor)
+    : state.baseColor;
+  const baseInput = document.getElementById('base-color');
+  baseInput.value = baseVal;
+  document.getElementById('base-swatch').style.background = baseVal;
+  document.getElementById('base-hex').textContent = baseVal;
+
+  const setActive = (btn, active) => {
+    btn.style.background  = active ? 'var(--accent-bg)' : 'rgba(255,255,255,0.04)';
+    btn.style.borderColor = active ? 'var(--accent)'    : 'var(--border-hi)';
+    btn.querySelector('span.media-label').style.color = active ? 'var(--accent)' : 'var(--text-mid)';
+  };
+  setActive(document.getElementById('media-btn-cassette'), isCassette);
+  setActive(document.getElementById('media-btn-floppy'),   isFloppy);
+  setActive(document.getElementById('media-btn-cd'),       isCD);
+}
+
+// ── Upload & crop ─────────────────────────────────────────────────────────
+const fileInput = document.getElementById('file-input');
+let cropDragStart = null;
+
+function openUpload(face) {
+  state.currentFace = face;
+  fileInput.value = '';
+  fileInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      userOriginal[face] = img; // keep original for reposition
+      state.cropImg = img;
+      openCropModal(face, img);
+    };
+    img.src = url;
+  };
+  fileInput.click();
+}
+
+function openReposition(face) {
+  const orig = userOriginal[face];
+  if (!orig) return;
+  state.currentFace = face;
+  state.cropImg = orig;
+  openCropModal(face, orig);
+}
+
+function openCropModal(face, img) {
+  const titleMap = { label: 'Label', 'cd-spine': 'CD Spine', 'cd-side-1': 'CD Side', 'cd-disc': 'CD Art', 'cd-disc-2': 'CD Art', 'cd-disc-solo': 'Disc Art' };
+  document.getElementById('crop-title').textContent =
+    titleMap[face] ? `Crop Artwork — ${titleMap[face]}` :
+    `Crop Artwork — ${face.charAt(0).toUpperCase() + face.slice(1)}`;
+
+  let targetAR;
+  if (face === 'label') {
+    targetAR = FLOPPY_ART.w / FLOPPY_ART.h;
+  } else if (face === 'cd-spine') {
+    targetAR = CD_SPINE.w / CD_SPINE.h;
+  } else if (face === 'cd-side-1') {
+    targetAR = CD_BOX_D / CD_BOX_H;
+  } else if (face === 'cd-disc' || face === 'cd-disc-2' || face === 'cd-disc-solo') {
+    targetAR = 1; // square crop for circular art
+  } else {
+    const cfg = FACE_CFG[face];
+    targetAR = face === 'back' ? (cfg.w * BACK_ART_RATIO) / cfg.h : cfg.w / cfg.h;
+  }
+
+  const canvas = document.getElementById('crop-canvas');
+  canvas.width  = img.width;
+  canvas.height = img.height;
+
+  const maxW = Math.min(540, window.innerWidth * 0.85 - 40);
+  const maxH = 460;
+  const dispScale = Math.min(maxW / img.width, maxH / img.height);
+  canvas.style.width  = (img.width  * dispScale) + 'px';
+  canvas.style.height = (img.height * dispScale) + 'px';
+  canvas._dispScale = dispScale;
+
+  let cw, ch;
+  if (img.width / img.height > targetAR) {
+    ch = img.height; cw = ch * targetAR;
+  } else {
+    cw = img.width;  ch = cw / targetAR;
+  }
+  state.cropRect = {
+    x: (img.width  - cw) / 2,
+    y: (img.height - ch) / 2,
+    w: cw, h: ch, ar: targetAR,
+  };
+
+  drawCrop(img);
+
+  canvas.onmousedown = e => {
+    const r  = canvas.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / canvas._dispScale;
+    const my = (e.clientY - r.top)  / canvas._dispScale;
+    cropDragStart = { mx, my, rx: state.cropRect.x, ry: state.cropRect.y };
+  };
+  canvas.onmousemove = e => {
+    if (!cropDragStart) return;
+    const r  = canvas.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / canvas._dispScale;
+    const my = (e.clientY - r.top)  / canvas._dispScale;
+    const cr = state.cropRect;
+    cr.x = Math.max(0, Math.min(img.width  - cr.w, cropDragStart.rx + (mx - cropDragStart.mx)));
+    cr.y = Math.max(0, Math.min(img.height - cr.h, cropDragStart.ry + (my - cropDragStart.my)));
+    drawCrop(img);
+  };
+  canvas.onmouseup = canvas.onmouseleave = () => { cropDragStart = null; };
+  canvas.onwheel = e => {
+    e.preventDefault();
+    const cr  = state.cropRect;
+    const fac = e.deltaY > 0 ? 1.06 : 0.94;
+    const nw  = Math.max(20, Math.min(img.width,  cr.w * fac));
+    const nh  = Math.max(20, Math.min(img.height, nw / cr.ar));
+    if (nh > img.height) return;
+    const cx = cr.x + cr.w / 2, cy = cr.y + cr.h / 2;
+    cr.w = nw; cr.h = nh;
+    cr.x = Math.max(0, Math.min(img.width  - cr.w, cx - cr.w / 2));
+    cr.y = Math.max(0, Math.min(img.height - cr.h, cy - cr.h / 2));
+    drawCrop(img);
+  };
+
+  document.getElementById('crop-modal').classList.add('open');
+  lucide.createIcons();
+}
+
+function drawCrop(img) {
+  const canvas = document.getElementById('crop-canvas');
+  const ctx = canvas.getContext('2d');
+  const cr  = state.cropRect;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillRect(cr.x, cr.y, cr.w, cr.h);
+  ctx.restore();
+  ctx.drawImage(img, cr.x, cr.y, cr.w, cr.h, cr.x, cr.y, cr.w, cr.h);
+  const s = canvas._dispScale || 1;
+  ctx.strokeStyle = 'rgba(183,208,83,0.9)';
+  ctx.lineWidth   = 2 / s;
+  ctx.strokeRect(cr.x + 1/s, cr.y + 1/s, cr.w - 2/s, cr.h - 2/s);
+  const hs = 10 / s;
+  ctx.fillStyle = '#b7d053';
+  [[0,0],[1,0],[0,1],[1,1]].forEach(([hx, hy]) => {
+    ctx.fillRect(cr.x + hx * cr.w - hs/2, cr.y + hy * cr.h - hs/2, hs, hs);
+  });
+}
+
+function closeCropModal() {
+  document.getElementById('crop-modal').classList.remove('open');
+  state.cropImg = null;
+  cropDragStart = null;
+}
+
+function applyCrop() {
+  const face = state.currentFace;
+  const img  = state.cropImg;
+  if (!img || !face) return;
+
+  let outW, outH;
+  if (face === 'label') {
+    outW = FLOPPY_ART.w; outH = FLOPPY_ART.h;
+  } else if (face === 'cd-spine') {
+    outW = CD_SPINE.w; outH = CD_SPINE.h;
+  } else if (face === 'cd-side-1') {
+    outW = 76; outH = 1000;
+  } else if (face === 'cd-disc-2') {
+    outW = CD2_DISC.outerW; outH = CD2_DISC.outerH;
+  } else if (face === 'cd-disc') {
+    outW = CD_DISC.outerW; outH = CD_DISC.outerH;
+  } else if (face === 'cd-disc-solo') {
+    outW = CD_SOLO_CANVAS; outH = CD_SOLO_CANVAS;
+  } else {
+    const cfg = FACE_CFG[face];
+    outW = face === 'back' ? Math.round(cfg.w * BACK_ART_RATIO) : cfg.w;
+    outH = cfg.h;
+  }
+  const tmp  = document.createElement('canvas');
+  tmp.width  = outW; tmp.height = outH;
+  const cr   = state.cropRect;
+  tmp.getContext('2d').drawImage(img, cr.x, cr.y, cr.w, cr.h, 0, 0, outW, outH);
+
+  const out = new Image();
+  out.onload = () => {
+    if (face === 'label') {
+      userArt.label = out;
+      refreshFloppyFace('front');
+    } else if (face === 'cd-spine') {
+      userArt.cdSpine = out;
+      refreshAllCDFaces();
+    } else if (face === 'cd-side-1') {
+      userArt.cdSide1 = out;
+      refreshCDFace('spineside');
+    } else if (face === 'cd-disc-2') {
+      userArt.cdDisc2 = out;
+      refreshCD2Face('front');
+    } else if (face === 'cd-disc') {
+      userArt.cdDisc = out;
+      refreshCDFace('front');
+    } else if (face === 'cd-disc-solo') {
+      userArt.cdDiscSolo = out;
+      refreshSoloCDFace('front');
+    } else {
+      userArt[face] = out;
+      refreshFace(face);
+    }
+    const thumbId = `thumb-${face}`;
+    const iconId  = `thumb-icon-${face}`;
+    const reposId = `btn-repos-${face}`;
+    const thumb = document.getElementById(thumbId);
+    const icon  = document.getElementById(iconId);
+    if (thumb) { thumb.src = tmp.toDataURL('image/jpeg', 0.7); thumb.style.display = 'block'; }
+    if (icon) icon.style.display = 'none';
+    const reposBtn = document.getElementById(reposId);
+    if (reposBtn) reposBtn.style.display = 'flex';
+    closeCropModal();
+  };
+  out.src = tmp.toDataURL();
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+document.getElementById('btn-play').addEventListener('click', () => {
+  state.rotating = !state.rotating;
+  const btn  = document.getElementById('btn-play');
+  const icon = btn.querySelector('i');
+  btn.classList.toggle('active', state.rotating);
+  icon.setAttribute('data-lucide', state.rotating ? 'pause' : 'play');
+  lucide.createIcons();
+});
+
+document.getElementById('slider-speed').addEventListener('input', e => {
+  state.speed = parseFloat(e.target.value);
+  document.getElementById('val-speed').textContent = state.speed.toFixed(1) + '×';
+});
+
+document.getElementById('tint-color').addEventListener('input', e => {
+  state.tint = e.target.value;
+  document.getElementById('tint-swatch').style.background = state.tint;
+  document.getElementById('tint-hex').textContent = state.tint;
+  const c = new THREE.Color(state.tint);
+  Object.values(faceMats).forEach(m => { if (m?.color) m.color.set(c); });
+});
+
+document.getElementById('base-color').addEventListener('input', e => {
+  const val = e.target.value;
+  document.getElementById('base-swatch').style.background = val;
+  document.getElementById('base-hex').textContent = val;
+  if (state.mediaType === 'floppy') {
+    state.floppyBaseColor = val;
+    refreshAllFloppyFaces();
+  } else if (state.mediaType === 'cd') {
+    if (state.cdCase === 'clear') { state.cd2BaseColor = val; refreshAllCD2Faces(); }
+    else if (state.cdCase === 'solo') { state.cdSoloBaseColor = val; refreshAllSoloCDFaces(); }
+    else { state.cdBaseColor = val; refreshAllCDFaces(); }
+  } else {
+    state.baseColor = val;
+    refreshAllFaces();
+  }
+});
+
+document.getElementById('cassette-color').addEventListener('input', e => {
+  state.cassetteColor = e.target.value;
+  document.getElementById('cassette-swatch').style.background = state.cassetteColor;
+  document.getElementById('cassette-hex').textContent = state.cassetteColor;
+  refreshFace('back');
+});
+
+document.getElementById('bg-color').addEventListener('input', e => {
+  state.bg = e.target.value;
+  document.getElementById('bg-swatch').style.background = state.bg;
+  document.getElementById('bg-hex').textContent = state.bg;
+  scene.background = new THREE.Color(state.bg);
+});
+
+document.getElementById('slider-color').addEventListener('input', e => {
+  state.floppySliderColor = e.target.value;
+  document.getElementById('slider-swatch').style.background = state.floppySliderColor;
+  document.getElementById('slider-hex').textContent = state.floppySliderColor;
+  refreshAllFloppyFaces();
+});
+
+// Prevent color pickers from bubbling up
+['tint-color','base-color','cassette-color','bg-color','slider-color'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => e.stopPropagation());
+});
+
+// Finish buttons
+['plastic','matte'].forEach(f => {
+  document.getElementById(`finish-${f}`).addEventListener('click', () => {
+    ['plastic','matte'].forEach(k =>
+      document.getElementById(`finish-${k}`).classList.toggle('active', k === f)
+    );
+    if (state.mediaType === 'cd') {
+      if (state.cdCase === 'clear') { state.cd2Finish = f; applyFinishToCD2(); }
+      else if (state.cdCase === 'solo') { state.cdSoloFinish = f; applyFinishToSoloCD(); }
+      else { state.cdFinish = f; applyFinishToCD(); }
+    } else {
+      state.finish = f;
+      applyFinishToMaterials();
+      refreshAllFaces();
+    }
+  });
+});
+
+// Post buttons
+document.getElementById('post-grain').addEventListener('click', () => {
+  state.grainEnabled = !state.grainEnabled;
+  document.getElementById('post-grain').classList.toggle('active', state.grainEnabled);
+  if (grainPass) grainPass.enabled = state.grainEnabled;
+});
+
+document.getElementById('post-threshold').addEventListener('click', () => {
+  state.thresholdEnabled = !state.thresholdEnabled;
+  document.getElementById('post-threshold').classList.toggle('active', state.thresholdEnabled);
+  document.getElementById('threshold-ctrl').style.display = state.thresholdEnabled ? 'flex' : 'none';
+  if (thresholdPass) thresholdPass.enabled = state.thresholdEnabled;
+});
+
+document.getElementById('threshold-val').addEventListener('input', e => {
+  state.thresholdVal = Number(e.target.value);
+  document.getElementById('threshold-num').textContent = state.thresholdVal;
+  if (thresholdPass) thresholdPass.uniforms.threshold.value = state.thresholdVal / 255.0;
+});
+
+// Upload & reposition buttons
+['front','side','back'].forEach(face => {
+  document.getElementById(`btn-${face}`).addEventListener('click', () => openUpload(face));
+  document.getElementById(`btn-repos-${face}`).addEventListener('click', () => openReposition(face));
+});
+document.getElementById('btn-label').addEventListener('click', () => openUpload('label'));
+document.getElementById('btn-repos-label').addEventListener('click', () => openReposition('label'));
+document.getElementById('btn-cd-spine').addEventListener('click', () => openUpload('cd-spine'));
+document.getElementById('btn-cd-side-1').addEventListener('click', () => openUpload('cd-side-1'));
+document.getElementById('btn-repos-cd-spine').addEventListener('click', () => openReposition('cd-spine'));
+document.getElementById('btn-cd-disc').addEventListener('click', () => openUpload('cd-disc'));
+document.getElementById('btn-repos-cd-disc').addEventListener('click', () => openReposition('cd-disc'));
+document.getElementById('btn-cd-disc-2').addEventListener('click', () => openUpload('cd-disc-2'));
+document.getElementById('btn-repos-cd-disc-2').addEventListener('click', () => openReposition('cd-disc-2'));
+document.getElementById('btn-cd-disc-solo').addEventListener('click', () => openUpload('cd-disc-solo'));
+
+// Crop modal buttons
+document.getElementById('btn-crop-close').addEventListener('click',  closeCropModal);
+document.getElementById('btn-crop-cancel').addEventListener('click', closeCropModal);
+document.getElementById('btn-crop-apply').addEventListener('click',  applyCrop);
+
+// Lighting buttons
+document.querySelectorAll('#panel-light button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setupLighting(btn.dataset.env);
+    document.querySelectorAll('#panel-light button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Collapsible sidebar sections
+document.querySelectorAll('.sb-section-header').forEach(h => {
+  h.addEventListener('click', () => {
+    const section = h.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    const tog = h.querySelector('.sb-section-toggle');
+    if (tog) tog.textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+['none','basic','clear','solo'].forEach(k => {
+  const btn = document.getElementById(`cd-case-${k}`);
+  if (btn) btn.addEventListener('click', () => switchCDCase(k));
+});
+['1','2','3','4'].forEach(k =>
+  document.getElementById(`cd-back-${k}`).addEventListener('click', () => switchCDBack(k))
+);
+document.getElementById('media-btn-cassette').addEventListener('click', () => switchMedia('cassette'));
+document.getElementById('media-btn-floppy').addEventListener('click',   () => switchMedia('floppy'));
+document.getElementById('media-btn-cd').addEventListener('click',       () => switchMedia('cd'));
+
+// ── Export ─────────────────────────────────────────────────────────────────
+document.getElementById('btn-png').addEventListener('click', () => {
+  composer.render();
+  renderer.domElement.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cassette-mockup.png';
+    a.click();
+  }, 'image/png');
+});
+
+document.getElementById('btn-gif').addEventListener('click', async () => {
+  const overlay = document.getElementById('gif-overlay');
+  const fill  = document.getElementById('gif-fill');
+  const title = document.getElementById('gif-title');
+  const sub   = document.getElementById('gif-sub');
+  overlay.classList.add('open');
+  title.textContent = 'Recording GIF…';
+
+  // One full 360° loop, paced to the current speed slider (baseline: one
+  // loop every 3s at speed=1x), clamped so extreme slider values still
+  // produce a reasonable-length, reasonable-framerate GIF.
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+  const rotationSeconds = clamp(3 / Math.max(state.speed, 0.01), 1, 8);
+  const totalFrames  = clamp(Math.round(rotationSeconds * 24), 24, 72);
+  const frameDelayMs = Math.round((rotationSeconds * 1000) / totalFrames);
+
+  const gifW = Math.min(640, renderer.domElement.width);
+  const gifH = Math.round(gifW * renderer.domElement.height / renderer.domElement.width);
+  const gif  = new GIF({ workers: 2, quality: 8, width: gifW, height: gifH, workerScript: 'gif.worker.js' });
+  const tmp  = document.createElement('canvas');
+  tmp.width = gifW; tmp.height = gifH;
+  const tmpCtx = tmp.getContext('2d');
+
+  gifExporting = true;
+  controls.enabled = false;
+
+  // Orbit the camera around the fixed target for exactly one full turn —
+  // this is how rotation is actually produced during normal playback
+  // (OrbitControls.autoRotate orbits the camera, not the mesh), so driving
+  // it directly here rotates whichever media/case is currently visible,
+  // uniformly, independent of real frame timing.
+  const startOffset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+  const spherical    = new THREE.Spherical().setFromVector3(startOffset);
+  const baseTheta     = spherical.theta;
+  const stepAngle      = (Math.PI * 2) / totalFrames;
+
+  for (let f = 0; f < totalFrames; f++) {
+    spherical.theta = baseTheta + f * stepAngle;
+    const offset = new THREE.Vector3().setFromSpherical(spherical);
+    camera.position.copy(controls.target).add(offset);
+    camera.lookAt(controls.target);
+    if (cdDiscMeshes.length) cdDiscMeshes.forEach(m => m.rotation.z -= stepAngle);
+    composer.render();
+    tmpCtx.drawImage(renderer.domElement, 0, 0, gifW, gifH);
+    gif.addFrame(tmp, { copy: true, delay: frameDelayMs });
+    fill.style.width = `${(f / totalFrames) * 65}%`;
+    sub.textContent  = `Frame ${f + 1} / ${totalFrames}`;
+    await new Promise(r => requestAnimationFrame(r));
+  }
+
+  // Restore exact starting camera position (theta has wrapped by exactly
+  // 2π, so this also avoids float drift) and resume live auto-rotate.
+  camera.position.copy(controls.target).add(startOffset);
+  camera.lookAt(controls.target);
+  controls.enabled = true;
+  gifExporting = false;
+
+  gif.on('progress', p => {
+    fill.style.width = `${65 + p * 35}%`;
+    sub.textContent  = `Encoding… ${Math.round(p * 100)}%`;
+  });
+  gif.on('finished', blob => {
+    overlay.classList.remove('open');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cassette-mockup.gif';
+    a.click();
+  });
+  title.textContent = 'Encoding GIF…';
+  gif.render();
+});
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+initThree();
+switchMedia('cd'); // default to CD + solo case (state.cdCase is 'solo' above)
+loadAssets();
+lucide.createIcons();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

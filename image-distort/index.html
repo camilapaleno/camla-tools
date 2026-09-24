@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Distort — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    #canvas-area canvas { cursor: grab; }
+    #canvas-area canvas.dragging { cursor: grabbing; }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/image-distort</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <!-- Toolbar / Logo -->
+  <!-- Scrollable controls -->
+  <div class="sb-body">
+
+    <!-- Upload image -->
+    <div class="sb-upload" id="upload-btn">
+      <div>
+        <div class="sb-upload-name">Upload image</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+      <span class="sb-upload-kbd">cmd + O</span>
+    </div>
+
+    <!-- Upload distortion map -->
+    <div class="sb-upload" id="upload-map-btn" style="margin-top:6px">
+      <div>
+        <div class="sb-upload-name">Distortion map</div>
+        <div class="sb-upload-hint">.jpg or .png</div>
+      </div>
+    </div>
+
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+    <input type="file" id="map-input"  accept="image/*" style="display:none">
+
+    <!-- Canvas Size -->
+    <div class="sb-section" style="border-top:none;margin-top:8px">
+      <div class="sb-ctrl">
+        <span class="sb-ctrl-lbl">Canvas Size</span>
+        <input type="range" id="sl-canvas" min="200" max="1200" step="1" value="600">
+        <span class="sb-val" id="val-canvas">600</span>
+      </div>
+    </div>
+
+    <!-- Image Preprocessing (collapsible) -->
+    <div class="sb-section" id="sec-preprocess">
+      <div class="sb-section-header" data-section="sec-preprocess">
+        <span class="sb-section-title">Image Preprocessing</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blur</span>
+          <input type="range" id="sl-blur" min="0" max="10" step="0.5" value="0">
+          <span class="sb-val" id="val-blur">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Grain</span>
+          <input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-grain">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Gamma</span>
+          <input type="range" id="sl-gamma" min="0.1" max="2" step="0.1" value="1">
+          <span class="sb-val" id="val-gamma">1</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Black Point</span>
+          <input type="range" id="sl-black" min="0" max="255" step="1" value="0">
+          <span class="sb-val" id="val-black">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">White Point</span>
+          <input type="range" id="sl-white" min="0" max="255" step="1" value="255">
+          <span class="sb-val" id="val-white">255</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distort controls -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="sec-distort">
+        <span class="sb-section-title">Distortion</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body" id="sec-distort-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Threshold</span>
+          <input type="range" id="sl-threshold" min="0" max="255" step="1" value="0">
+          <span class="sb-val" id="val-threshold">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">X Shift</span>
+          <input type="range" id="sl-xstrength" min="-100" max="100" step="1" value="40">
+          <span class="sb-val" id="val-xstrength">40</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Y Shift</span>
+          <input type="range" id="sl-ystrength" min="-100" max="100" step="1" value="40">
+          <span class="sb-val" id="val-ystrength">40</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="sb-section">
+      <div class="sb-section-body" style="padding:6px 0 4px">
+        <div class="sb-check" id="chk-show-effect">
+          <span class="sb-check-indicator">[*]</span>
+          <span class="sb-check-lbl">Show Effect</span>
+        </div>
+        <div class="sb-toggle-row">
+          <span class="sb-toggle-lbl">Preprocess</span>
+          <div class="sb-toggle-group" id="preprocess-target">
+            <button class="sb-toggle-btn active" data-val="distortion">distortion</button>
+            <button class="sb-toggle-btn" data-val="base">base</button>
+          </div>
+        </div>
+        <div class="sb-toggle-row">
+          <span class="sb-toggle-lbl">Output format</span>
+          <div class="sb-toggle-group" id="output-format">
+            <button class="sb-toggle-btn active" data-val="png">PNG</button>
+            <button class="sb-toggle-btn" data-val="jpg">JPG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sb-body -->
+
+  <!-- Footer -->
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-export">
+      <span>Export canvas</span>
+      <span class="sb-kbd">cmd + S</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <canvas id="fx-canvas"></canvas>
+  <div id="upload-overlay">
+    <i data-lucide="image-plus" width="40" height="40" stroke-width="1.5"></i>
+    <span>Upload an image to get started</span>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const state = {
+  srcImage:       null,
+  mapImage:       null,
+  canvasSize:     600,
+  blurAmount:     0,
+  grainAmount:    0,
+  gamma:          1,
+  blackPoint:     0,
+  whitePoint:     255,
+  threshold:      0,
+  xStrength:      40,
+  yStrength:      40,
+  showEffect:     true,
+  preprocessTarget: 'distortion',
+  outputFormat:   'png',
+  zoom:  1,
+  panX:  0,
+  panY:  0,
+};
+
+// ─── Canvas setup ─────────────────────────────────────────────────────────────
+const fxCanvas  = document.getElementById('fx-canvas');
+const fxCtx     = fxCanvas.getContext('2d', { willReadFrequently: true });
+const canvasArea = document.getElementById('canvas-area');
+
+function syncSize() {
+  const W = canvasArea.clientWidth;
+  const H = canvasArea.clientHeight;
+  fxCanvas.width  = W;
+  fxCanvas.height = H;
+}
+window.addEventListener('resize', () => { syncSize(); scheduleFrame(); });
+syncSize();
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+const mapRange = (v, a, b, c, d) => c + (d - c) * ((v - a) / (b - a));
+
+// ─── Preprocessing ────────────────────────────────────────────────────────────
+function preprocessImage(srcImg) {
+  const size = state.canvasSize;
+  const buf = document.createElement('canvas');
+  buf.width = buf.height = size;
+  const ctx = buf.getContext('2d', { willReadFrequently: true });
+
+  // Cover-fit
+  const scale = Math.max(size / srcImg.width, size / srcImg.height);
+  const sw = srcImg.width * scale;
+  const sh = srcImg.height * scale;
+
+  if (state.blurAmount > 0) {
+    const tmp = document.createElement('canvas');
+    tmp.width = tmp.height = size;
+    const tCtx = tmp.getContext('2d');
+    tCtx.filter = `blur(${state.blurAmount}px)`;
+    tCtx.drawImage(srcImg, (size - sw) / 2, (size - sh) / 2, sw, sh);
+    ctx.drawImage(tmp, 0, 0);
+  } else {
+    ctx.drawImage(srcImg, (size - sw) / 2, (size - sh) / 2, sw, sh);
+  }
+
+  const id = ctx.getImageData(0, 0, size, size);
+  const px = id.data;
+
+  for (let i = 0; i < px.length; i += 4) {
+    // Grain
+    if (state.grainAmount !== 0) {
+      const n = (0.5 - Math.random()) * state.grainAmount * 255;
+      px[i]   = clamp(px[i]   + n, 0, 255);
+      px[i+1] = clamp(px[i+1] + n, 0, 255);
+      px[i+2] = clamp(px[i+2] + n, 0, 255);
+    }
+    // Gamma
+    if (state.gamma !== 1) {
+      px[i]   = clamp(255 * Math.pow(px[i]   / 255, state.gamma), 0, 255);
+      px[i+1] = clamp(255 * Math.pow(px[i+1] / 255, state.gamma), 0, 255);
+      px[i+2] = clamp(255 * Math.pow(px[i+2] / 255, state.gamma), 0, 255);
+    }
+    // Levels
+    if (state.blackPoint !== 0 || state.whitePoint !== 255) {
+      const s = 255 / (state.whitePoint - state.blackPoint);
+      px[i]   = clamp((px[i]   - state.blackPoint) * s, 0, 255);
+      px[i+1] = clamp((px[i+1] - state.blackPoint) * s, 0, 255);
+      px[i+2] = clamp((px[i+2] - state.blackPoint) * s, 0, 255);
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return buf;
+}
+
+// ─── Distort ──────────────────────────────────────────────────────────────────
+function applyDistort(srcBuf, mapBuf) {
+  const size = state.canvasSize;
+  const out  = document.createElement('canvas');
+  out.width = out.height = size;
+  const outCtx = out.getContext('2d');
+
+  const srcId  = srcBuf.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, size, size);
+  const mapId  = mapBuf.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, size, size);
+  const outId  = outCtx.createImageData(size, size);
+
+  const spx = srcId.data;
+  const mpx = mapId.data;
+  const opx = outId.data;
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const o = (x + y * size) * 4;
+      const m = mpx[o]; // red channel = brightness
+      if (m > state.threshold) {
+        const dx = mapRange(m, 0, 255, -state.xStrength, state.xStrength);
+        const dy = mapRange(m, 0, 255, -state.yStrength, state.yStrength);
+        const sx = clamp(Math.floor(x + dx), 0, size - 1);
+        const sy = clamp(Math.floor(y + dy), 0, size - 1);
+        const s  = (sx + sy * size) * 4;
+        opx[o]=spx[s]; opx[o+1]=spx[s+1]; opx[o+2]=spx[s+2]; opx[o+3]=spx[s+3];
+      } else {
+        opx[o]=spx[o]; opx[o+1]=spx[o+1]; opx[o+2]=spx[o+2]; opx[o+3]=spx[o+3];
+      }
+    }
+  }
+  outCtx.putImageData(outId, 0, 0);
+  return out;
+}
+
+// ─── Prepare map buffer ───────────────────────────────────────────────────────
+function prepareMapBuffer(img) {
+  const size = state.canvasSize;
+  const buf  = document.createElement('canvas');
+  buf.width = buf.height = size;
+  const ctx = buf.getContext('2d', { willReadFrequently: true });
+  const scale = Math.max(size / img.width, size / img.height);
+  const sw = img.width * scale;
+  const sh = img.height * scale;
+  ctx.drawImage(img, (size - sw) / 2, (size - sh) / 2, sw, sh);
+  return buf;
+}
+
+// ─── Draw frame ───────────────────────────────────────────────────────────────
+function drawFrame() {
+  const W = fxCanvas.width, H = fxCanvas.height;
+  fxCtx.fillStyle = '#0a0a0f';
+  fxCtx.fillRect(0, 0, W, H);
+
+  if (!state.srcImage) return;
+
+  // preprocessTarget: 'distortion' applies adjustments to map, 'base' applies to base image
+  const applyToBase = state.preprocessTarget === 'base';
+  const applyToMap  = state.preprocessTarget === 'distortion';
+
+  let srcBuf = applyToBase
+    ? preprocessImage(state.srcImage)
+    : prepareMapBuffer(state.srcImage);
+
+  // If no map is uploaded, self-displace: use the source image as its own map.
+  // Bright regions of the image drive pixel shifts; dark regions stay put.
+  const mapSrc = state.mapImage || state.srcImage;
+  let mapBuf = applyToMap
+    ? preprocessImage(mapSrc)
+    : prepareMapBuffer(mapSrc);
+
+  let finalBuf = srcBuf;
+  if (state.showEffect) {
+    finalBuf = applyDistort(srcBuf, mapBuf);
+  }
+
+  // Center and scale to viewport
+  const size   = state.canvasSize;
+  const fitScale = Math.min(W / size, H / size) * state.zoom;
+  const drawW  = size * fitScale;
+  const drawH  = size * fitScale;
+  const drawX  = (W - drawW) / 2 + state.panX;
+  const drawY  = (H - drawH) / 2 + state.panY;
+
+  fxCtx.drawImage(finalBuf, drawX, drawY, drawW, drawH);
+}
+
+let rafScheduled = false;
+function scheduleFrame() {
+  if (rafScheduled) return;
+  rafScheduled = true;
+  requestAnimationFrame(() => { rafScheduled = false; drawFrame(); });
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+const uploadOverlay = document.getElementById('upload-overlay');
+const fileInput     = document.getElementById('file-input');
+const mapInput      = document.getElementById('map-input');
+
+function loadImage(file, target) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    if (target === 'src') {
+      state.srcImage = img;
+      uploadOverlay.classList.add('hidden');
+    } else {
+      state.mapImage = img;
+    }
+    URL.revokeObjectURL(url);
+    scheduleFrame();
+  };
+  img.src = url;
+}
+
+document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+document.getElementById('upload-map-btn').addEventListener('click', () => mapInput.click());
+
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadImage(f, 'src');
+  fileInput.value = '';
+});
+mapInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadImage(f, 'map');
+  mapInput.value = '';
+});
+
+// Drag and drop on canvas area
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); uploadOverlay.classList.add('drag-over'); });
+canvasArea.addEventListener('dragleave', () => uploadOverlay.classList.remove('drag-over'));
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadOverlay.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImage(f, 'src');
+});
+
+// ─── Pan + zoom ───────────────────────────────────────────────────────────────
+let dragging = false, dragX = 0, dragY = 0;
+fxCanvas.addEventListener('mousedown', e => { dragging = true; dragX = e.clientX; dragY = e.clientY; fxCanvas.classList.add('dragging'); });
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  state.panX += e.clientX - dragX; state.panY += e.clientY - dragY;
+  dragX = e.clientX; dragY = e.clientY;
+  scheduleFrame();
+});
+window.addEventListener('mouseup', () => { dragging = false; fxCanvas.classList.remove('dragging'); });
+
+// ─── Slider bindings ──────────────────────────────────────────────────────────
+function bindSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+    scheduleFrame();
+  });
+}
+bindSlider('sl-canvas',    'val-canvas',    'canvasSize',   v => Math.round(v));
+bindSlider('sl-blur',      'val-blur',      'blurAmount',   v => v);
+bindSlider('sl-grain',     'val-grain',     'grainAmount',  v => v.toFixed(2));
+bindSlider('sl-gamma',     'val-gamma',     'gamma',        v => v.toFixed(1));
+bindSlider('sl-black',     'val-black',     'blackPoint',   v => Math.round(v));
+bindSlider('sl-white',     'val-white',     'whitePoint',   v => Math.round(v));
+bindSlider('sl-threshold', 'val-threshold', 'threshold',    v => Math.round(v));
+bindSlider('sl-xstrength', 'val-xstrength', 'xStrength',    v => Math.round(v));
+bindSlider('sl-ystrength', 'val-ystrength', 'yStrength',    v => Math.round(v));
+
+// ─── Section collapse ─────────────────────────────────────────────────────────
+document.querySelectorAll('.sb-section-header').forEach(hdr => {
+  hdr.addEventListener('click', () => {
+    const section = document.getElementById(hdr.dataset.section) || hdr.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    hdr.querySelector('.sb-section-toggle').textContent =
+      section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── Show Effect toggle ───────────────────────────────────────────────────────
+const chkShowEffect = document.getElementById('chk-show-effect');
+chkShowEffect.addEventListener('click', () => {
+  state.showEffect = !state.showEffect;
+  chkShowEffect.classList.toggle('checked', state.showEffect);
+  chkShowEffect.querySelector('.sb-check-indicator').textContent = state.showEffect ? '[*]' : '[ ]';
+  scheduleFrame();
+});
+chkShowEffect.classList.add('checked');
+
+// ─── Toggle groups ────────────────────────────────────────────────────────────
+document.querySelectorAll('#preprocess-target .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#preprocess-target .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.preprocessTarget = btn.dataset.val;
+    scheduleFrame();
+  });
+});
+
+document.querySelectorAll('#output-format .sb-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#output-format .sb-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.outputFormat = btn.dataset.val;
+  });
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function exportCanvas() {
+  if (!state.srcImage) return;
+  const size   = state.canvasSize;
+  const expC   = document.createElement('canvas');
+  expC.width = expC.height = size;
+  const expCtx = expC.getContext('2d', { willReadFrequently: true });
+
+  const applyToBase = state.preprocessTarget === 'base';
+  const applyToMap  = state.preprocessTarget === 'distortion';
+  let srcBuf = applyToBase ? preprocessImage(state.srcImage) : prepareMapBuffer(state.srcImage);
+  const mapSrc = state.mapImage || state.srcImage;
+  let mapBuf = applyToMap ? preprocessImage(mapSrc) : prepareMapBuffer(mapSrc);
+  let finalBuf = state.showEffect ? applyDistort(srcBuf, mapBuf) : srcBuf;
+  expCtx.drawImage(finalBuf, 0, 0, size, size);
+
+  const mime = state.outputFormat === 'jpg' ? 'image/jpeg' : 'image/png';
+  const ext  = state.outputFormat === 'jpg' ? 'jpg' : 'png';
+  const a    = document.createElement('a');
+  a.download = `distort.${ext}`;
+  a.href     = expC.toDataURL(mime, 0.95);
+  a.click();
+}
+
+document.getElementById('btn-export').addEventListener('click', exportCanvas);
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); exportCanvas(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); fileInput.click(); }
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+lucide.createIcons();
+scheduleFrame();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>

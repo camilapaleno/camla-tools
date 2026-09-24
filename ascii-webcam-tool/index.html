@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Webcam Tool</title>
+  <link rel="icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    #canvas-area { position: relative; flex: 1; background: var(--bg); overflow: hidden; }
+    #canvas-area #fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+    #cam-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px;
+      color: var(--text-lo); font-size: 13px; font-weight: 300;
+      pointer-events: none;
+      background: var(--bg); z-index: 10;
+      transition: opacity 0.4s;
+    }
+    #cam-overlay svg { width: 40px; height: 40px; stroke-width: 1.5; }
+    #cam-overlay.hidden { opacity: 0; pointer-events: none; }
+    #cam-overlay.gone { display: none; }
+    #cam-overlay-msg { text-align: center; max-width: 280px; line-height: 1.6; }
+
+    #rec-indicator {
+      position: absolute; top: 16px; right: 16px;
+      display: none; align-items: center; gap: 6px;
+      background: rgba(0,0,0,0.6); border: 1px solid rgba(255,80,80,0.4);
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; color: #ff6060; z-index: 20;
+    }
+    #rec-indicator.visible { display: flex; }
+    #rec-dot { width: 6px; height: 6px; background: #ff3333; border-radius: 50%; animation: blink 1s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    #btn-record.recording { background: rgba(200,50,50,0.18); color: #e06060; }
+
+    .palette-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 14px; cursor: pointer; border-radius: 5px;
+      transition: background 0.12s;
+    }
+    .palette-row:hover { background: rgba(255,255,255,0.04); }
+    .palette-row.active { background: var(--accent-bg); }
+    .palette-swatches { display: flex; height: 14px; flex: 1; border-radius: 3px; overflow: hidden; min-width: 0; }
+    .palette-swatch { flex: 1; }
+    .palette-name { font-size: 10px; color: var(--text-mid); flex-shrink: 0; min-width: 60px; text-align: right; }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/ascii-webcam-tool</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+  <div class="sb-body">
+
+    <!-- Camera -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="camera">
+        <span class="sb-section-title">Camera</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-toggle-row">
+          <div class="sb-toggle-group">
+            <button class="sb-toggle-btn active" id="btn-flip">
+              <i data-lucide="flip-horizontal-2" width="13" height="13" stroke-width="1.5"></i>
+              Mirror
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colors -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="colors">
+        <span class="sb-section-title">Colors</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-color-row">
+          <span class="sb-color-lbl">Background</span>
+          <div class="swatch" id="bg-swatch" style="background:#050508">
+            <input type="color" id="bg-color-input" value="#050508">
+          </div>
+          <span id="bg-color-val" style="display:none">#050508</span>
+        </div>
+        <div class="sb-btn-grid">
+          <button class="sb-btn filter-btn" data-filter="saturated">Saturated</button>
+          <button class="sb-btn filter-btn" data-filter="moody">Moody</button>
+          <button class="sb-btn filter-btn" data-filter="warm">Warm</button>
+          <button class="sb-btn filter-btn active" data-filter="crossprocess">Cross</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Palette -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="palette">
+        <span class="sb-section-title">Palette</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div id="palette-list"></div>
+      </div>
+    </div>
+
+    <!-- Dither -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="dither">
+        <span class="sb-section-title">Dither Mode</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-btn-grid">
+          <button class="sb-btn dither-btn" data-dither="square">Square</button>
+          <button class="sb-btn dither-btn" data-dither="circle">Circle</button>
+          <button class="sb-btn dither-btn" data-dither="xs">Xs</button>
+          <button class="sb-btn dither-btn" data-dither="crosses">Crosses</button>
+          <button class="sb-btn dither-btn" data-dither="shapes">Shapes</button>
+          <button class="sb-btn dither-btn" data-dither="flowers">Flowers</button>
+          <button class="sb-btn dither-btn" data-dither="code">Code</button>
+          <button class="sb-btn dither-btn" data-dither="stars">Stars</button>
+          <button class="sb-btn dither-btn" data-dither="hearts">Hearts</button>
+          <button class="sb-btn dither-btn active" data-dither="ascii">ASCII</button>
+        </div>
+        <div style="padding:0 14px 8px">
+          <button class="sb-btn" id="btn-uniform" style="width:100%;text-align:center">Uniform Size</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Adjustments -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="adjustments">
+        <span class="sb-section-title">Adjustments</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Exposure</span><input type="range" id="sl-exposure" min="0.1" max="3" step="0.05" value="1.5"><span class="sb-val" id="val-exposure">1.50</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Cell</span><input type="range" id="sl-cellsize" min="1" max="10" step="1" value="6"><span class="sb-val" id="val-cellsize">6</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Spacing</span><input type="range" id="sl-spacing" min="0" max="8" step="1" value="0"><span class="sb-val" id="val-spacing">0</span></div>
+        <div id="ratio-wrap" style="display:none">
+          <div class="sb-ctrl"><span class="sb-ctrl-lbl">Ratio</span><input type="range" id="sl-ratio" min="0.0833" max="12" step="0.05" value="1"><span class="sb-val" id="val-ratio">1:1</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Effects -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="effects">
+        <span class="sb-section-title">Effects</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Bloom</span><input type="range" id="sl-bloom" min="0" max="1" step="0.01" value="1"><span class="sb-val" id="val-bloom">1.00</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Grain</span><input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0"><span class="sb-val" id="val-grain">0.00</span></div>
+        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Zoom Blur</span><input type="range" id="sl-zblur" min="0" max="1" step="0.01" value="0"><span class="sb-val" id="val-zblur">0.00</span></div>
+      </div>
+    </div>
+
+  </div><!-- /sb-body -->
+
+  <div class="sb-footer" style="display:flex;flex-direction:column;gap:6px;">
+    <button class="sb-export-btn" id="btn-snapshot">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="camera" width="14" height="14" stroke-width="1.5"></i>
+        Snapshot
+      </span>
+    </button>
+    <button class="sb-export-btn" id="btn-record">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="circle" width="14" height="14" stroke-width="1.5"></i>
+        <span id="lbl-record">Record</span>
+      </span>
+    </button>
+  </div>
+</div><!-- /sidebar -->
+
+<div id="canvas-area">
+  <canvas id="fx-canvas"></canvas>
+  <div id="cam-overlay">
+    <i data-lucide="camera" width="40" height="40" stroke-width="1.5"></i>
+    <div id="cam-overlay-msg">Waiting for camera access…</div>
+  </div>
+  <div id="rec-indicator"><div id="rec-dot"></div><span id="rec-label">REC 0s</span></div>
+</div>
+
+<video id="webcam-video" autoplay playsinline muted style="display:none"></video>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+const state = {
+  palette:         'interloper',
+  ditherMode:      'ascii',
+  cellSize:        6,
+  spacing:         0,
+  uniformSize:     false,
+  squareRatio:     1.0,
+  paletteColors:   [],
+  paletteExposure: 1.5,
+  postBloom:       1,
+  postGrain:       0,
+  postZoomBlur:    0,
+  colorFilter:     'crossprocess',
+  colorBg:         '#050508',
+  zoom:            1.0,
+  panX:            0,
+  panY:            0,
+  webcamMirrored:  true,
+  isRecording:     false,
+  webcamReady:     false,
+};
+
+// ─── Canvas setup ────────────────────────────────────────────────────────────
+const canvasArea = document.getElementById('canvas-area');
+const fxCanvas  = document.getElementById('fx-canvas');
+const fxCtx     = fxCanvas.getContext('2d');
+const srcCanvas = document.createElement('canvas');
+const srcCtx    = srcCanvas.getContext('2d', { willReadFrequently: true });
+const viewport  = canvasArea;
+
+function syncSize() {
+  const W = canvasArea.clientWidth, H = canvasArea.clientHeight;
+  fxCanvas.width = srcCanvas.width  = W;
+  fxCanvas.height = srcCanvas.height = H;
+}
+window.addEventListener('resize', syncSize);
+syncSize();
+
+// ─── Webcam ──────────────────────────────────────────────────────────────────
+const webcamVideo = document.getElementById('webcam-video');
+
+async function initWebcam() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    webcamVideo.srcObject = stream;
+    state.webcamStream = stream;
+    await webcamVideo.play();
+    state.webcamReady = true;
+    const overlay = document.getElementById('cam-overlay');
+    overlay.classList.add('hidden');
+    setTimeout(() => overlay.classList.add('gone'), 450);
+  } catch (err) {
+    document.getElementById('cam-overlay-msg').textContent =
+      'Camera access denied. Please allow camera access and reload the page.';
+    console.error('Camera init failed:', err);
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function hexToRgb(hex) {
+  return {
+    r: parseInt(hex.slice(1,3), 16),
+    g: parseInt(hex.slice(3,5), 16),
+    b: parseInt(hex.slice(5,7), 16),
+  };
+}
+
+// ─── Colour Palettes ──────────────────────────────────────────────────────────
+const PALETTES = [
+  { id: 'none',       label: 'None',        swatches: [] },
+  { id: 'bw',         label: 'B&W',         swatches: ['#000000','#ffffff'] },
+  { id: 'greyscale',  label: 'Greyscale',   swatches: ['#000000','#404040','#808080','#c0c0c0','#ffffff'] },
+  { id: 'blush',      label: 'Blush',       swatches: ['#161112','#652227','#a32e38','#dc3746','#de73c2','#979598','#d6d6d8'] },
+  { id: 'embertwin',  label: 'Ember Twin',  swatches: ['#000000','#3b100d','#7e221e','#d12a19','#e6613d','#db8676','#f6ab39','#f5b19b'] },
+  { id: 'interloper', label: 'Interloper',  swatches: ['#242a2e','#3d4c59','#2e7485','#758b9e','#3cb2bb','#37dadc','#aec0dc','#f5b19b'] },
+  { id: 'limewire',   label: 'Limewire',    swatches: ['#111111','#1a1917','#27271e','#222313','#6a6421','#7f7063','#d0cf2d','#e2dc9b'] },
+  { id: 'neuro',      label: 'Neuro',       swatches: ['#0f0304','#3f1319','#8c0e2a','#de134d','#4f5d71','#637ba1','#8b7475','#91b8dc','#e9f7f9'] },
+  { id: 'coldfront',  label: 'Coldfront',   swatches: ['#011e4f','#178cf1','#67effb','#e4ffff','#ffffff'] },
+  { id: 'claret',     label: 'Claret',      swatches: ['#1f1b18','#2e2517','#bc1726'] },
+  { id: 'thicket',    label: 'Thicket',     swatches: ['#1e2f1a','#284354','#4fc061'] },
+  { id: 'arcade',     label: 'Arcade',      swatches: ['#151a1b','#642a3d','#874f99','#fb3b54','#fc4cf7','#fd9efd','#b0de5f','#f9f0f8'] },
+  { id: 'cosmos',     label: 'Cosmos',      swatches: ['#0c0d0f','#191e2b','#1c1e2e','#361e3d','#1d334d','#54406b','#2f4f6d','#b43b3d','#8f5a95','#2d78aa','#43a3d2','#c9a5d5','#72cae9','#9be0f7','#c8f4fe','#f4fafd'] },
+  { id: 'dusk',       label: 'Dusk',        swatches: ['#0e0e0e','#171213','#181619','#685057','#d73841','#ce87a1','#cfbfcb','#d6d4d7'] },
+  { id: 'harvest',    label: 'Harvest',     swatches: ['#020202','#281519','#4d303f','#7e5b6f','#d2500c','#bf93b7','#e3c321','#e1d7e3'] },
+];
+
+// ─── Draw webcam source ───────────────────────────────────────────────────────
+function drawSourceImage() {
+  const W = srcCanvas.width, H = srcCanvas.height;
+  srcCtx.fillStyle = state.colorBg;
+  srcCtx.fillRect(0, 0, W, H);
+  if (!state.webcamReady || webcamVideo.readyState < 2) return;
+
+  const vw = webcamVideo.videoWidth  || W;
+  const vh = webcamVideo.videoHeight || H;
+
+  const baseScale = Math.min(W / vw, H / vh) * 0.8;
+  const scale     = baseScale * state.zoom;
+  const x         = W / 2 + state.panX - (vw * scale) / 2;
+  const y         = H / 2 + state.panY - (vh * scale) / 2;
+
+  srcCtx.save();
+  if (state.webcamMirrored) {
+    srcCtx.translate(W, 0);
+    srcCtx.scale(-1, 1);
+  }
+  srcCtx.drawImage(webcamVideo, x, y, vw * scale, vh * scale);
+  srcCtx.restore();
+}
+
+// ─── Palette colour mapping ───────────────────────────────────────────────────
+function nearestPaletteColor(r, g, b) {
+  const colors = state.paletteColors;
+  let best = colors[0], bestDist = Infinity;
+  for (const c of colors) {
+    const d = (r - c.r) ** 2 + (g - c.g) ** 2 + (b - c.b) ** 2;
+    if (d < bestDist) { bestDist = d; best = c; }
+  }
+  return best;
+}
+
+// ─── Full Colour render ───────────────────────────────────────────────────────
+function drawFullColor() {
+  const W = fxCanvas.width, H = fxCanvas.height;
+  fxCtx.clearRect(0, 0, W, H);
+  fxCtx.fillStyle = state.colorBg;
+  fxCtx.fillRect(0, 0, W, H);
+
+  const srcData = srcCtx.getImageData(0, 0, W, H);
+  const px   = srcData.data;
+  const cs   = state.cellSize;
+  const step = cs + state.spacing;
+
+  if (['ascii','shapes','flowers','code','stars','hearts'].includes(state.ditherMode)) {
+    const fontScale = ['stars','hearts','shapes','flowers'].includes(state.ditherMode) ? 1.45 : 1.0;
+    fxCtx.font         = `${cs * fontScale}px monospace`;
+    fxCtx.textAlign    = 'center';
+    fxCtx.textBaseline = 'middle';
+  }
+
+  for (let cy = 0; cy < H; cy += step) {
+    for (let cx = 0; cx < W; cx += step) {
+      const spx = Math.min(cx + (step >> 1), W - 1);
+      const spy = Math.min(cy + (step >> 1), H - 1);
+      const idx = (spy * W + spx) * 4;
+      const e   = state.paletteExposure;
+      const r   = Math.min(255, px[idx]   * e);
+      const g   = Math.min(255, px[idx+1] * e);
+      const b   = Math.min(255, px[idx+2] * e);
+      const br  = (0.299*r + 0.587*g + 0.114*b) / 255;
+      if (br < 0.02) continue;
+
+      const col  = state.paletteColors.length ? nearestPaletteColor(r, g, b) : { r, g, b };
+      const norm = state.uniformSize ? 1.0 : br;
+      const cx2  = cx + step * 0.5;
+      const cy2  = cy + step * 0.5;
+      fxCtx.fillStyle   = `rgb(${col.r},${col.g},${col.b})`;
+      fxCtx.strokeStyle = `rgb(${col.r},${col.g},${col.b})`;
+
+      switch (state.ditherMode) {
+        case 'square': {
+          const ratio = state.squareRatio;
+          const area  = norm * cs;
+          const w     = area * Math.sqrt(ratio);
+          const h     = area / Math.sqrt(ratio);
+          fxCtx.fillRect(cx2 - w * 0.5, cy2 - h * 0.5, w, h);
+          break;
+        }
+        case 'circle': {
+          const rad = norm * cs * 0.5;
+          fxCtx.beginPath();
+          fxCtx.arc(cx2, cy2, rad, 0, Math.PI * 2);
+          fxCtx.fill();
+          break;
+        }
+        case 'xs': {
+          const arm   = norm * cs * 0.46;
+          const thick = Math.max(1, cs * 0.15);
+          fxCtx.save();
+          fxCtx.translate(cx2, cy2);
+          fxCtx.rotate(Math.PI / 4);
+          fxCtx.fillRect(-arm, -thick * 0.5, arm * 2, thick);
+          fxCtx.fillRect(-thick * 0.5, -arm, thick, arm * 2);
+          fxCtx.restore();
+          break;
+        }
+        case 'crosses': {
+          const arm   = norm * cs * 0.46;
+          const thick = Math.max(1, cs * 0.15);
+          fxCtx.fillRect(cx2 - arm, cy2 - thick * 0.5, arm * 2, thick);
+          fxCtx.fillRect(cx2 - thick * 0.5, cy2 - arm, thick, arm * 2);
+          break;
+        }
+        case 'shapes': {
+          const SHAPES = ['─','✕','◣','●','■'];
+          fxCtx.fillText(SHAPES[Math.floor(norm * (SHAPES.length - 1))], cx2, cy2);
+          break;
+        }
+        case 'flowers': {
+          const SHAPES = ['✢','✻','✽','❊','✿'];
+          fxCtx.fillText(SHAPES[Math.floor(norm * (SHAPES.length - 1))], cx2, cy2);
+          break;
+        }
+        case 'code': {
+          const CODE = ['<','>','/','=','{','}','#','@','&','!','%',';',':','~'];
+          fxCtx.fillText(CODE[Math.floor(norm * (CODE.length - 1))], cx2, cy2);
+          break;
+        }
+        case 'stars': {
+          const STARS = ['✦','✧','✩','✬','✭','✰','★︎','✸'];
+          fxCtx.fillText(STARS[Math.floor(norm * (STARS.length - 1))], cx2, cy2);
+          break;
+        }
+        case 'hearts': {
+          const HEARTS = ['·','♡','♥︎','❤︎'];
+          fxCtx.fillText(HEARTS[Math.floor(norm * (HEARTS.length - 1))], cx2, cy2);
+          break;
+        }
+        case 'ascii': {
+          const ASCII = ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+          fxCtx.fillText(ASCII[Math.floor(norm * (ASCII.length - 1))], cx2, cy2);
+          break;
+        }
+      }
+    }
+  }
+
+  applyPostFx();
+}
+
+// ─── Post Effects ─────────────────────────────────────────────────────────────
+function applyPostFx() {
+  const W = fxCanvas.width, H = fxCanvas.height;
+
+  if (state.postBloom > 0) {
+    const snap = document.createElement('canvas');
+    snap.width = W; snap.height = H;
+    snap.getContext('2d').drawImage(fxCanvas, 0, 0);
+    const bc = document.createElement('canvas');
+    bc.width = W; bc.height = H;
+    const bx = bc.getContext('2d');
+    bx.filter = `blur(${state.postBloom * 18}px) brightness(${1 + state.postBloom * 0.6})`;
+    bx.drawImage(snap, 0, 0);
+    fxCtx.globalCompositeOperation = 'screen';
+    fxCtx.globalAlpha = state.postBloom * 0.75;
+    fxCtx.drawImage(bc, 0, 0);
+    fxCtx.globalCompositeOperation = 'source-over';
+    fxCtx.globalAlpha = 1;
+  }
+
+  if (state.postGrain > 0) {
+    const gc = document.createElement('canvas');
+    gc.width = W; gc.height = H;
+    const gx = gc.getContext('2d');
+    const id = gx.createImageData(W, H);
+    const d  = id.data;
+    for (let i = 0; i < W * H; i++) {
+      const v = Math.floor(Math.random() * 255);
+      d[i*4] = d[i*4+1] = d[i*4+2] = v;
+      d[i*4+3] = Math.floor(state.postGrain * 55);
+    }
+    gx.putImageData(id, 0, 0);
+    fxCtx.globalCompositeOperation = 'overlay';
+    fxCtx.globalAlpha = state.postGrain * 0.65;
+    fxCtx.drawImage(gc, 0, 0);
+    fxCtx.globalCompositeOperation = 'source-over';
+    fxCtx.globalAlpha = 1;
+  }
+
+  if (state.postZoomBlur > 0) {
+    const snap = document.createElement('canvas');
+    snap.width = W; snap.height = H;
+    snap.getContext('2d').drawImage(fxCanvas, 0, 0);
+    const steps = 10;
+    for (let i = 1; i <= steps; i++) {
+      const t     = i / steps;
+      const scale = 1 + state.postZoomBlur * 0.1 * t;
+      fxCtx.globalAlpha = (1 - t) * 0.22 * state.postZoomBlur;
+      fxCtx.drawImage(snap,
+        (W - W * scale) / 2, (H - H * scale) / 2,
+        W * scale, H * scale);
+    }
+    fxCtx.globalAlpha = 1;
+  }
+
+  if (state.colorFilter) {
+    const FILTER_CSS = {
+      saturated:    'saturate(2.2) contrast(1.1)',
+      moody:        'contrast(1.3) saturate(0.4) brightness(0.82)',
+      warm:         'sepia(0.4) saturate(1.5) brightness(1.06) contrast(1.05)',
+      crossprocess: 'contrast(1.5) saturate(2.5) hue-rotate(-25deg) brightness(0.9)',
+    };
+    const f = FILTER_CSS[state.colorFilter];
+    if (f) {
+      const snap = document.createElement('canvas');
+      snap.width = W; snap.height = H;
+      snap.getContext('2d').drawImage(fxCanvas, 0, 0);
+      fxCtx.clearRect(0, 0, W, H);
+      fxCtx.filter = f;
+      fxCtx.drawImage(snap, 0, 0);
+      fxCtx.filter = 'none';
+    }
+  }
+}
+
+// ─── Main render ─────────────────────────────────────────────────────────────
+function drawFrame() {
+  drawSourceImage();
+  if (!state.webcamReady || webcamVideo.readyState < 2) return;
+  drawFullColor();
+}
+
+// ─── Render loop ─────────────────────────────────────────────────────────────
+function renderLoop() {
+  drawFrame();
+  requestAnimationFrame(renderLoop);
+}
+renderLoop();
+
+// ─── Panel stubs ─────────────────────────────────────────────────────────────
+function closeAllPanels() {}
+function bindPanelToggle() {}
+
+// ─── Section collapse ─────────────────────────────────────────────────────────
+document.querySelectorAll('.sb-section-header').forEach(h => {
+  h.addEventListener('click', () => {
+    const section = h.closest('.sb-section');
+    section.classList.toggle('collapsed');
+    const tog = h.querySelector('.sb-section-toggle');
+    if (tog) tog.textContent = section.classList.contains('collapsed') ? '+' : '−';
+  });
+});
+
+// ─── Palette list ─────────────────────────────────────────────────────────────
+(function buildPaletteList() {
+  const list = document.getElementById('palette-list');
+  PALETTES.forEach(pal => {
+    const row = document.createElement('div');
+    row.className = 'palette-row' + (pal.id === state.palette ? ' active' : '');
+    row.dataset.palette = pal.id;
+
+    if (pal.swatches.length) {
+      const sw = document.createElement('div');
+      sw.className = 'palette-swatches';
+      pal.swatches.forEach(col => {
+        const s = document.createElement('div');
+        s.className = 'palette-swatch';
+        s.style.background = col;
+        sw.appendChild(s);
+      });
+      row.appendChild(sw);
+    } else {
+      const sp = document.createElement('div');
+      sp.style.cssText = 'flex:1';
+      row.appendChild(sp);
+    }
+
+    const nm = document.createElement('div');
+    nm.className = 'palette-name';
+    nm.textContent = pal.label;
+    row.appendChild(nm);
+
+    row.addEventListener('click', () => {
+      state.palette       = pal.id;
+      state.paletteColors = pal.swatches.map(hex => hexToRgb(hex));
+      list.querySelectorAll('.palette-row').forEach(r => r.classList.remove('active'));
+      row.classList.add('active');
+    });
+
+    list.appendChild(row);
+  });
+
+  const defaultPal = PALETTES.find(p => p.id === state.palette);
+  if (defaultPal) state.paletteColors = defaultPal.swatches.map(hex => hexToRgb(hex));
+})();
+
+// ─── Background colour ────────────────────────────────────────────────────────
+(() => {
+  const input  = document.getElementById('bg-color-input');
+  const swatch = document.getElementById('bg-swatch');
+  const val    = document.getElementById('bg-color-val');
+
+  function applyBg(hex) {
+    state.colorBg        = hex;
+    swatch.style.background = hex;
+    val.textContent      = hex;
+  }
+
+  applyBg(state.colorBg);
+  input.value = state.colorBg;
+  input.addEventListener('click',  e => e.stopPropagation());
+  input.addEventListener('input',  () => applyBg(input.value));
+  input.addEventListener('change', () => applyBg(input.value));
+})();
+
+// ─── Colour filters ───────────────────────────────────────────────────────────
+if (state.colorFilter) {
+  const activeBtn = document.querySelector(`.filter-btn[data-filter="${state.colorFilter}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const f = btn.dataset.filter;
+    if (state.colorFilter === f) {
+      state.colorFilter = null;
+      btn.classList.remove('active');
+    } else {
+      state.colorFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  });
+});
+
+// ─── Dither mode ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.dither-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.ditherMode = btn.dataset.dither;
+    document.querySelectorAll('.dither-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('ratio-wrap').style.display =
+      state.ditherMode === 'square' ? '' : 'none';
+  });
+});
+
+// ─── Uniform size ─────────────────────────────────────────────────────────────
+document.getElementById('btn-uniform').addEventListener('click', () => {
+  state.uniformSize = !state.uniformSize;
+  document.getElementById('btn-uniform').classList.toggle('active', state.uniformSize);
+});
+
+// ─── Sliders ──────────────────────────────────────────────────────────────────
+document.getElementById('sl-exposure').addEventListener('input', e => {
+  state.paletteExposure = parseFloat(e.target.value);
+  document.getElementById('val-exposure').textContent = state.paletteExposure.toFixed(2);
+});
+document.getElementById('sl-cellsize').addEventListener('input', e => {
+  state.cellSize = parseInt(e.target.value);
+  document.getElementById('val-cellsize').textContent = e.target.value;
+});
+document.getElementById('sl-spacing').addEventListener('input', e => {
+  state.spacing = parseInt(e.target.value);
+  document.getElementById('val-spacing').textContent = e.target.value;
+});
+
+function formatRatio(v) {
+  if (Math.abs(v - 1) < 0.04) return '1:1';
+  if (v > 1) return `${Math.round(v * 10) / 10}:1`;
+  return `1:${Math.round((1 / v) * 10) / 10}`;
+}
+document.getElementById('sl-ratio').addEventListener('input', e => {
+  state.squareRatio = parseFloat(e.target.value);
+  document.getElementById('val-ratio').textContent = formatRatio(state.squareRatio);
+});
+
+document.getElementById('sl-bloom').addEventListener('input', e => {
+  state.postBloom = parseFloat(e.target.value);
+  document.getElementById('val-bloom').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.getElementById('sl-grain').addEventListener('input', e => {
+  state.postGrain = parseFloat(e.target.value);
+  document.getElementById('val-grain').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.getElementById('sl-zblur').addEventListener('input', e => {
+  state.postZoomBlur = parseFloat(e.target.value);
+  document.getElementById('val-zblur').textContent = parseFloat(e.target.value).toFixed(2);
+});
+
+// ─── Flip (mirror) ────────────────────────────────────────────────────────────
+document.getElementById('btn-flip').addEventListener('click', e => {
+  e.stopPropagation();
+  state.webcamMirrored = !state.webcamMirrored;
+  document.getElementById('btn-flip').classList.toggle('active', state.webcamMirrored);
+});
+
+// ─── Snapshot ────────────────────────────────────────────────────────────────
+document.getElementById('btn-snapshot').addEventListener('click', () => {
+  if (!state.webcamReady) return;
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  a.download = `webcam-${ts}.png`;
+  a.href = fxCanvas.toDataURL('image/png');
+  a.click();
+});
+
+// ─── Recording ───────────────────────────────────────────────────────────────
+let mediaRecorder = null, recChunks = [], recCountdown = null, recSeconds = 0;
+
+function pickMime() {
+  return MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9' : 'video/webm';
+}
+
+const recIndicator = document.getElementById('rec-indicator');
+const recLabel     = document.getElementById('rec-label');
+
+function startRecording() {
+  if (mediaRecorder || !state.webcamReady) return;
+  const stream = fxCanvas.captureStream(30);
+  mediaRecorder = new MediaRecorder(stream, { mimeType: pickMime(), videoBitsPerSecond: 20000000 });
+  recChunks = [];
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recChunks, { type: 'video/webm' });
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.download = `webcam-${ts}.webm`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    mediaRecorder = null;
+    state.isRecording = false;
+    document.getElementById('btn-record').classList.remove('recording');
+    document.getElementById('lbl-record').textContent = 'Record';
+    recIndicator.classList.remove('visible');
+    clearInterval(recCountdown);
+  };
+  mediaRecorder.start();
+  state.isRecording = true;
+
+  document.getElementById('btn-record').classList.add('recording');
+  document.getElementById('lbl-record').textContent = 'Stop';
+  recSeconds = 0;
+  recLabel.textContent = 'REC 0s';
+  recIndicator.classList.add('visible');
+  recCountdown = setInterval(() => {
+    recSeconds++;
+    recLabel.textContent = `REC ${recSeconds}s`;
+  }, 1000);
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+}
+
+document.getElementById('btn-record').addEventListener('click', e => {
+  e.stopPropagation();
+  if (state.isRecording) stopRecording();
+  else startRecording();
+});
+
+// ─── Pan (drag) ───────────────────────────────────────────────────────────────
+let dragging = false, dragX = 0, dragY = 0;
+
+fxCanvas.addEventListener('mousedown', e => {
+  dragging = true; dragX = e.clientX; dragY = e.clientY;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  state.panX += e.clientX - dragX;
+  state.panY += e.clientY - dragY;
+  dragX = e.clientX; dragY = e.clientY;
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+
+fxCanvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? 1.1 : 0.9;
+  state.zoom  = Math.max(0.5, Math.min(10, state.zoom * delta));
+}, { passive: false });
+
+// Touch
+let touchCache = [], lastPinch = null;
+let isDragging = false, lastX = 0, lastY = 0;
+viewport.addEventListener('touchstart', e => {
+  e.preventDefault();
+  touchCache = [...e.touches];
+  if (touchCache.length === 1) {
+    isDragging = true;
+    lastX = touchCache[0].clientX; lastY = touchCache[0].clientY;
+  } else {
+    isDragging = false;
+    lastPinch = Math.hypot(
+      touchCache[0].clientX - touchCache[1].clientX,
+      touchCache[0].clientY - touchCache[1].clientY
+    );
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    state.panX += e.touches[0].clientX - lastX;
+    state.panY += e.touches[0].clientY - lastY;
+    lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  } else if (e.touches.length === 2 && lastPinch) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    state.zoom = Math.max(0.5, Math.min(10, state.zoom * (d / lastPinch)));
+    lastPinch = d;
+  }
+}, { passive: false });
+viewport.addEventListener('touchend', () => { isDragging = false; lastPinch = null; });
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+lucide.createIcons();
+initWebcam();
+</script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>
