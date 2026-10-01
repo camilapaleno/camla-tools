@@ -8,6 +8,9 @@
    Optional per-tool hook (not required):
      window.CAMLA_MOBILE_COMPARE = { on(){…}, off(){…} }
    If present, a "hold to compare" button is shown in the drum actions row.
+
+   Tools that show/hide control groups call window.CAMLA_MOBILE_REFRESH() after
+   toggling [hidden]; the drum then lists only the visible sliders.
    ══════════════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -16,7 +19,7 @@
   var HAPTIC_MS   = 40;       // min interval between tick haptics
 
   var MQ = window.matchMedia('(max-width: 720px)');
-  var sidebar, params = [], sel = null, built = false;
+  var sidebar, params = [], sel = null, built = false, uploadProxies = [];
 
   function ready(fn) {
     if (document.readyState !== 'loading') fn();
@@ -66,6 +69,7 @@
     buildTopbar();
     buildHandle();
     if (params.length) buildDrum();
+    refresh();
   }
 
   function buildTopbar() {
@@ -94,6 +98,7 @@
         b.className = 'm-tb-btn';
         b.textContent = uploads.length > 1 && nameEl ? nameEl.textContent.trim() : 'Upload';
         b.addEventListener('click', function () { zone.click(); });
+        uploadProxies.push({ zone: zone, btn: b });
         bar.appendChild(b);
       })(uploads[i]);
     }
@@ -272,6 +277,24 @@
     params.forEach(renderRow);
     renderDrum();
   }
+
+  // Hide drum rows and upload proxies whose original sits inside a [hidden]
+  // ancestor (tools that swap control groups, e.g. per-type sections) and
+  // re-read every value. Tools call window.CAMLA_MOBILE_REFRESH() after
+  // changing visibility.
+  function refresh() {
+    uploadProxies.forEach(function (u) { u.btn.style.display = u.zone.closest('[hidden]') ? 'none' : ''; });
+    if (!elParamList) return;
+    var first = -1;
+    params.forEach(function (p, idx) {
+      var hide = !!p.range.closest('[hidden]');
+      p.rowEl.style.display = hide ? 'none' : '';
+      if (!hide && first < 0) first = idx;
+    });
+    if (sel && sel.range.closest('[hidden]') && first >= 0) select(first);
+    renderAll();
+  }
+  window.CAMLA_MOBILE_REFRESH = refresh;
 
   // ── Commit ─────────────────────────────────────────────────────────────────
   var lastHaptic = 0, lastPct = null, atEndFired = false;

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cool Gradient — cam.tools</title>
+  <link rel="icon" type="image/svg+xml" href="../homepage/c-tools.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/tmt3ouk.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../cam-tools-ui.css">
+  <link rel="stylesheet" href="../cam-tools-mobile.css">
+  <style>
+    [hidden] { display: none !important; }
+    #canvas-area canvas { display: block; width: 100%; height: 100%; }
+
+    /* type picker: 3×2 grid of the shared .sb-btn */
+    .cg-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sb-gap-sm); padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-space-lg); }
+    .cg-types .sb-btn { text-align: center; }
+
+    /* preset dots */
+    .cg-dots { display: flex; flex-wrap: wrap; gap: var(--sb-gap-md); padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-space-lg); }
+    .cg-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 1px solid var(--sb-line-strong); cursor: pointer; padding: 0;
+      transition: transform 0.12s, border-color 0.12s;
+    }
+    .cg-dot:hover { transform: scale(1.12); border-color: var(--sb-text-mid); }
+    .cg-dot.active { border-color: var(--sb-accent); box-shadow: 0 0 0 2px var(--sb-accent-bg); }
+
+    /* seed stepper */
+    .cg-seed { display: flex; align-items: center; gap: var(--sb-gap-sm); padding: var(--sb-space) var(--sb-space-5xl); }
+    .cg-seed .sb-ctrl-lbl { flex: 1; }
+    .cg-seed .sb-input { width: 82px; text-align: center; padding: var(--sb-space-xs) var(--sb-gap-sm); }
+    .cg-seed .sb-btn { min-width: 24px; text-align: center; }
+
+    /* colors */
+    .cg-color-row { display: flex; align-items: center; gap: var(--sb-gap); padding: var(--sb-space-xs) var(--sb-space-5xl); }
+    .cg-color-row .sb-color-lbl { flex: 0 0 52px; cursor: pointer; }
+    .cg-color-row.active .sb-color-lbl { color: var(--sb-accent); }
+    .cg-color-row .sb-input { padding: var(--sb-space-xs) var(--sb-gap-sm); font-size: var(--sb-font-xs); }
+    .cg-hex { flex: 1; min-width: 0; }
+    .cg-alpha { width: 46px; text-align: right; }
+    .cg-pct { font-size: var(--sb-font-2xs); color: var(--sb-text-lo); }
+    .cg-eye { background: none; border: none; color: var(--sb-text-lo); cursor: pointer; padding: 0 2px; display: flex; }
+    .cg-eye:hover { color: var(--sb-text-hi); }
+    .cg-eye svg { width: 13px; height: 13px; }
+    .cg-recents { display: flex; flex-wrap: wrap; gap: 4px; padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-space-lg); }
+    .cg-recents:empty { display: none; }
+    .cg-recent { width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--sb-line-strong); cursor: pointer; padding: 0; }
+    .cg-hint { font-size: var(--sb-font-2xs); color: var(--sb-text-lo); padding: var(--sb-space-xs) var(--sb-space-5xl) var(--sb-space); line-height: 1.5; }
+
+    /* color stops: one track, four handles */
+    .cg-stops-row { padding: var(--sb-space-md) var(--sb-space-5xl) var(--sb-space); }
+    .cg-stops { position: relative; height: var(--sb-slider-h); margin: 0 6px; cursor: pointer; touch-action: none; }
+    .cg-stops-track {
+      position: absolute; inset: 0 -6px;
+      border-radius: var(--sb-slider-track-radius);
+      border: 1px solid var(--sb-line-strong);
+    }
+    .cg-stops-thumb {
+      position: absolute; top: 50%;
+      width: var(--sb-slider-thumb-w); height: var(--sb-slider-thumb-h);
+      transform: translate(-50%, -50%);
+      border-radius: var(--sb-slider-thumb-radius);
+      border: 2px solid var(--sb-slider-thumb-bg);
+      box-shadow: 0 0 0 1px #000;
+      outline: none;
+    }
+    .cg-stops-thumb:focus-visible { border-color: var(--sb-slider-thumb-bg-hover); }
+    .cg-stops-vals { display: block; text-align: right; margin-top: var(--sb-space); }
+
+    /* playback */
+    .cg-play { display: flex; align-items: center; gap: var(--sb-gap-md); padding: var(--sb-space-sm) var(--sb-space-5xl) var(--sb-space); }
+    .cg-play .sb-btn { display: flex; align-items: center; gap: 6px; }
+    .cg-play svg { width: 12px; height: 12px; }
+    .cg-time { font-size: var(--sb-font-xs); color: var(--sb-text-mid); font-variant-numeric: tabular-nums; margin-left: auto; }
+
+    /* user presets */
+    .cg-presets { padding: 0 var(--sb-space-5xl) var(--sb-space-lg); display: flex; flex-direction: column; gap: 3px; }
+    .cg-preset { display: flex; align-items: center; gap: 4px; }
+    .cg-preset .cg-preset-name {
+      flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cg-preset .sb-btn { padding: 2px 6px; }
+
+    /* export */
+    .cg-size-inputs { display: flex; align-items: center; gap: var(--sb-gap-sm); padding: var(--sb-space-xs) var(--sb-space-5xl) var(--sb-space); }
+    .cg-size-inputs .sb-input { width: 70px; text-align: center; padding: var(--sb-space-xs) var(--sb-gap-sm); }
+    .cg-size-inputs span { font-size: var(--sb-font-xs); color: var(--sb-text-lo); }
+    select.sb-input { appearance: none; cursor: pointer; }
+    .sb-toggle-group.wrap { flex-wrap: wrap; justify-content: flex-end; }
+
+    /* toast */
+    #cg-toast {
+      position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+      max-width: min(520px, calc(100% - 32px));
+      background: var(--bg); border: 1px solid var(--sb-border);
+      color: var(--sb-text-hi); font-size: var(--sb-font-xs); line-height: 1.5;
+      padding: 8px 12px; border-radius: var(--sb-radius-sm);
+      pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 5;
+      white-space: pre-line;
+    }
+    #cg-toast.show { opacity: 1; }
+    #cg-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-mid); font-size: 13px; padding: 20px; text-align: center; }
+  </style>
+</head>
+<body class="sidebar-app">
+
+<!-- ── Left Sidebar ── -->
+<div id="sidebar">
+
+  <div class="hp-top">
+    <a href="../index.html" class="hp-logo"><span class="pixel">camla</span>.tools/cool-gradient</a>
+    <div class="hp-icons">
+      <i data-lucide="globe"></i>
+      <i data-lucide="headphones"></i>
+      <i data-lucide="battery"></i>
+    </div>
+  </div>
+
+  <div class="sb-body" id="sb-body">
+    <!-- built by app.js from schema.js -->
+  </div>
+
+  <div class="sb-footer">
+    <button class="sb-export-btn" id="btn-export">
+      <span id="export-lbl">Export PNG</span>
+      <span class="sb-kbd">cmd + E</span>
+    </button>
+  </div>
+
+</div><!-- sidebar -->
+
+<!-- ── Right canvas area ── -->
+<div id="canvas-area">
+  <canvas id="fx-canvas"></canvas>
+  <div id="upload-overlay" class="hidden">
+    <i data-lucide="file-up" width="40" height="40" stroke-width="1.5"></i>
+    <span>Drop a settings file or an exported PNG</span>
+  </div>
+  <div id="cg-toast"></div>
+</div>
+
+<input type="file" id="settings-input" accept=".json,.bgart.json,application/json,image/png" style="display:none">
+<input type="file" id="image-input" accept="image/png,image/svg+xml,image/jpeg,image/webp" style="display:none">
+
+<script src="schema.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+<script src="../cam-tools-mobile.js" defer></script>
+</body>
+</html>
