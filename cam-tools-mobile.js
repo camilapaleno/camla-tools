@@ -64,6 +64,7 @@
 
     discover();
     buildTopbar();
+    buildHandle();
     if (params.length) buildDrum();
   }
 
@@ -71,19 +72,18 @@
     var bar = document.createElement('div');
     bar.id = 'm-topbar';
 
-    var srcLink = sidebar.querySelector('.sb-toolbar a');
+    var logoLink = sidebar.querySelector('.hp-top .hp-logo') || sidebar.querySelector('.sb-toolbar a');
     var back = document.createElement('a');
     back.className = 'm-tb-back';
-    back.href = (srcLink && srcLink.getAttribute('href')) || '../index.html';
+    back.href = (logoLink && logoLink.getAttribute('href')) || '../index.html';
     back.setAttribute('aria-label', 'Back');
     back.textContent = '‹';
     bar.appendChild(back);
 
-    var titleEl = sidebar.querySelector('.toolbar-title');
-    var title = document.createElement('span');
-    title.className = 'm-tb-title';
-    title.textContent = titleEl ? titleEl.textContent.trim() : (document.title || 'cam.tools');
-    bar.appendChild(title);
+    var logo = document.createElement('span');
+    logo.className = 'm-tb-title m-tb-logo';
+    logo.innerHTML = logoLink ? logoLink.innerHTML : (document.title || 'cam.tools');
+    bar.appendChild(logo);
 
     // Proxy buttons for every upload zone
     var uploads = sidebar.querySelectorAll('.sb-upload');
@@ -113,14 +113,40 @@
 
     var chevron = document.createElement('button');
     chevron.className = 'm-tb-chevron';
-    chevron.setAttribute('aria-label', 'Toggle controls');
-    chevron.textContent = '▲';
+    chevron.setAttribute('aria-label', 'Retract tools');
+    chevron.textContent = '▾';
     chevron.addEventListener('click', function () {
-      document.body.classList.toggle('m-sheet-open');
+      var hiding = !document.body.classList.contains('m-tools-hidden');
+      document.body.classList.toggle('m-tools-hidden', hiding);
+      if (hiding) document.body.classList.remove('m-sheet-open');
+      chevron.setAttribute('aria-label', hiding ? 'Show tools' : 'Retract tools');
+      fireResize();
     });
     bar.appendChild(chevron);
 
     document.body.appendChild(bar);
+  }
+
+  function fireResize() {
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  function buildHandle() {
+    var handle = document.createElement('div');
+    handle.className = 'm-drag-handle';
+    handle.setAttribute('role', 'button');
+    handle.setAttribute('aria-label', 'Toggle full controls');
+    var pill = document.createElement('span');
+    pill.className = 'm-drag-pill';
+    handle.appendChild(pill);
+    handle.addEventListener('click', function () {
+      document.body.classList.toggle('m-sheet-open');
+      fireResize();
+    });
+    sidebar.insertBefore(handle, sidebar.firstChild);
+    sidebar.addEventListener('transitionend', function (e) {
+      if (e.propertyName === 'max-height') fireResize();
+    });
   }
 
   function buildDrum() {

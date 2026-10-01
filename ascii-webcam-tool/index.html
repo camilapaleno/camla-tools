@@ -89,6 +89,51 @@
       </div>
     </div>
 
+    <!-- Preprocessing -->
+    <div class="sb-section">
+      <div class="sb-section-header" data-section="sec-preprocess">
+        <span class="sb-section-title">Preprocessing</span>
+        <span class="sb-section-toggle">−</span>
+      </div>
+      <div class="sb-section-body">
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Stretch H</span>
+          <input type="range" id="sl-stretch-x" min="0.2" max="3" step="0.05" value="1">
+          <span class="sb-val" id="val-stretch-x">1.00</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Stretch V</span>
+          <input type="range" id="sl-stretch-y" min="0.2" max="3" step="0.05" value="1">
+          <span class="sb-val" id="val-stretch-y">1.00</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Blur</span>
+          <input type="range" id="sl-blur" min="0" max="10" step="0.5" value="0">
+          <span class="sb-val" id="val-blur">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Grain</span>
+          <input type="range" id="sl-pre-grain" min="0" max="1" step="0.01" value="0">
+          <span class="sb-val" id="val-pre-grain">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Gamma</span>
+          <input type="range" id="sl-gamma" min="0.1" max="2" step="0.1" value="1">
+          <span class="sb-val" id="val-gamma">1</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Black Point</span>
+          <input type="range" id="sl-black" min="0" max="255" step="1" value="0">
+          <span class="sb-val" id="val-black">0</span>
+        </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">White Point</span>
+          <input type="range" id="sl-white" min="0" max="255" step="1" value="255">
+          <span class="sb-val" id="val-white">255</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Colors -->
     <div class="sb-section">
       <div class="sb-section-header" data-section="colors">
@@ -103,23 +148,19 @@
           </div>
           <span id="bg-color-val" style="display:none">#050508</span>
         </div>
+        <div class="sb-input-row">
+          <div class="sb-input-lbl">Palette</div>
+        </div>
+        <div id="palette-list" style="max-height:140px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent"></div>
+        <div class="sb-input-row">
+          <div class="sb-input-lbl">Filter</div>
+        </div>
         <div class="sb-btn-grid">
           <button class="sb-btn filter-btn" data-filter="saturated">Saturated</button>
           <button class="sb-btn filter-btn" data-filter="moody">Moody</button>
           <button class="sb-btn filter-btn" data-filter="warm">Warm</button>
           <button class="sb-btn filter-btn active" data-filter="crossprocess">Cross</button>
         </div>
-      </div>
-    </div>
-
-    <!-- Palette -->
-    <div class="sb-section">
-      <div class="sb-section-header" data-section="palette">
-        <span class="sb-section-title">Palette</span>
-        <span class="sb-section-toggle">−</span>
-      </div>
-      <div class="sb-section-body">
-        <div id="palette-list"></div>
       </div>
     </div>
 
@@ -145,6 +186,22 @@
         <div style="padding:0 14px 8px">
           <button class="sb-btn" id="btn-uniform" style="width:100%;text-align:center">Uniform Size</button>
         </div>
+        <div class="sb-ctrl">
+          <span class="sb-ctrl-lbl">Characters</span>
+          <input type="range" id="sl-charcols" min="20" max="300" step="1" value="80">
+          <span class="sb-val" id="val-charcols">80</span>
+        </div>
+        <div id="charset-row" class="sb-input-row">
+          <div class="sb-input-lbl">Character Set</div>
+          <input type="text" class="sb-input" id="charset-input">
+        </div>
+        <div id="ratio-wrap" style="display:none">
+          <div class="sb-ctrl">
+            <span class="sb-ctrl-lbl">Ratio</span>
+            <input type="range" id="sl-ratio" min="0.0833" max="12" step="0.05" value="1">
+            <span class="sb-val" id="val-ratio">1:1</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -156,24 +213,6 @@
       </div>
       <div class="sb-section-body">
         <div class="sb-ctrl"><span class="sb-ctrl-lbl">Exposure</span><input type="range" id="sl-exposure" min="0.1" max="3" step="0.05" value="1.5"><span class="sb-val" id="val-exposure">1.50</span></div>
-        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Cell</span><input type="range" id="sl-cellsize" min="1" max="10" step="1" value="6"><span class="sb-val" id="val-cellsize">6</span></div>
-        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Spacing</span><input type="range" id="sl-spacing" min="0" max="8" step="1" value="0"><span class="sb-val" id="val-spacing">0</span></div>
-        <div id="ratio-wrap" style="display:none">
-          <div class="sb-ctrl"><span class="sb-ctrl-lbl">Ratio</span><input type="range" id="sl-ratio" min="0.0833" max="12" step="0.05" value="1"><span class="sb-val" id="val-ratio">1:1</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Effects -->
-    <div class="sb-section">
-      <div class="sb-section-header" data-section="effects">
-        <span class="sb-section-title">Effects</span>
-        <span class="sb-section-toggle">−</span>
-      </div>
-      <div class="sb-section-body">
-        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Bloom</span><input type="range" id="sl-bloom" min="0" max="1" step="0.01" value="1"><span class="sb-val" id="val-bloom">1.00</span></div>
-        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Grain</span><input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0"><span class="sb-val" id="val-grain">0.00</span></div>
-        <div class="sb-ctrl"><span class="sb-ctrl-lbl">Zoom Blur</span><input type="range" id="sl-zblur" min="0" max="1" step="0.01" value="0"><span class="sb-val" id="val-zblur">0.00</span></div>
       </div>
     </div>
 
@@ -208,18 +247,39 @@
 
 <script>
 // ─── State ──────────────────────────────────────────────────────────────────
+const DEFAULT_CHARSETS = {
+  ascii:   ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
+  code:    ' <>/={}#@&!%;:~',
+  shapes:  ' ─✕◣●■',
+  flowers: ' ✢✻✽❊✿',
+  stars:   ' ✦✧✩✬✭✰★✸',
+  hearts:  ' ·♡♥❤',
+};
+const TEXT_DITHER_MODES = ['ascii', 'shapes', 'flowers', 'code', 'stars', 'hearts'];
+
+function glyphFontSize(cs, mode) {
+  const decorativeScale = ['stars', 'hearts', 'shapes', 'flowers'].includes(mode) ? 1.45 : 1.0;
+  return cs * decorativeScale * 0.72;
+}
+
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
 const state = {
   palette:         'interloper',
   ditherMode:      'ascii',
-  cellSize:        6,
-  spacing:         0,
+  charCols:        80,
+  charset:         DEFAULT_CHARSETS.ascii,
   uniformSize:     false,
   squareRatio:     1.0,
+  stretchX:        1.0,
+  stretchY:        1.0,
+  blurAmount:      0,
+  grainAmount:     0,
+  gamma:           1,
+  blackPoint:      0,
+  whitePoint:      255,
   paletteColors:   [],
   paletteExposure: 1.5,
-  postBloom:       1,
-  postGrain:       0,
-  postZoomBlur:    0,
   colorFilter:     'crossprocess',
   colorBg:         '#050508',
   zoom:            1.0,
@@ -278,6 +338,52 @@ function hexToRgb(hex) {
   };
 }
 
+function brightness(r, g, b) {
+  return (0.299*r + 0.587*g + 0.114*b) / 255;
+}
+
+function skipThreshold() {
+  const bg = hexToRgb(state.colorBg);
+  return brightness(bg.r, bg.g, bg.b) + 0.015;
+}
+
+// ─── Glyph darkness sort (character set is auto-ordered sparse → dense) ────────
+const darknessCache = new Map();
+function analyzeGlyph(ch) {
+  if (darknessCache.has(ch)) return darknessCache.get(ch);
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.font = '16px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 32, 32);
+  ctx.fillStyle = 'black'; ctx.fillText(ch, 16, 16);
+  const d = ctx.getImageData(0, 0, 32, 32).data;
+  let sum = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i+3] > 0) { n++; sum += (255 - (d[i] + d[i+1] + d[i+2]) / 3) / 255; }
+  }
+  const v = n ? sum / n : 0;
+  darknessCache.set(ch, v);
+  return v;
+}
+
+let sortedChars = '';
+let sortedCharsKey = '';
+function getSortedChars() {
+  const key = state.charset;
+  if (sortedCharsKey === key) return sortedChars;
+  const uniq = [...new Set(state.charset)];
+  const dark = new Map(uniq.map(c => [c, analyzeGlyph(c)]));
+  sortedChars = uniq.sort((a, b) => dark.get(a) - dark.get(b)).join('');
+  sortedCharsKey = key;
+  return sortedChars;
+}
+
+function gridStep(W) {
+  return Math.max(2, Math.round(W / Math.max(1, state.charCols)));
+}
+
 // ─── Colour Palettes ──────────────────────────────────────────────────────────
 const PALETTES = [
   { id: 'none',       label: 'None',        swatches: [] },
@@ -307,18 +413,50 @@ function drawSourceImage() {
   const vw = webcamVideo.videoWidth  || W;
   const vh = webcamVideo.videoHeight || H;
 
-  const baseScale = Math.min(W / vw, H / vh) * 0.8;
-  const scale     = baseScale * state.zoom;
-  const x         = W / 2 + state.panX - (vw * scale) / 2;
-  const y         = H / 2 + state.panY - (vh * scale) / 2;
+  const baseScale = Math.min(W / vw, H / vh) * 0.8 * state.zoom;
+  const dw        = vw * baseScale * state.stretchX;
+  const dh        = vh * baseScale * state.stretchY;
+  const x         = W / 2 + state.panX - dw / 2;
+  const y         = H / 2 + state.panY - dh / 2;
 
   srcCtx.save();
   if (state.webcamMirrored) {
     srcCtx.translate(W, 0);
     srcCtx.scale(-1, 1);
   }
-  srcCtx.drawImage(webcamVideo, x, y, vw * scale, vh * scale);
+  if (state.blurAmount > 0) srcCtx.filter = `blur(${state.blurAmount}px)`;
+  srcCtx.drawImage(webcamVideo, x, y, dw, dh);
   srcCtx.restore();
+
+  applyPreprocessingPixels();
+}
+
+// ─── Preprocessing (grain / gamma / black & white point) ──────────────────────
+function applyPreprocessingPixels() {
+  if (!(state.grainAmount > 0 || state.gamma !== 1 || state.blackPoint !== 0 || state.whitePoint !== 255)) return;
+  const W = srcCanvas.width, H = srcCanvas.height;
+  const id = srcCtx.getImageData(0, 0, W, H);
+  const px = id.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (state.grainAmount > 0) {
+      const n = (0.5 - Math.random()) * state.grainAmount * 255;
+      px[i]   = clamp(px[i]  +n, 0, 255);
+      px[i+1] = clamp(px[i+1]+n, 0, 255);
+      px[i+2] = clamp(px[i+2]+n, 0, 255);
+    }
+    if (state.gamma !== 1) {
+      px[i]   = clamp(255 * Math.pow(px[i]  /255, state.gamma), 0, 255);
+      px[i+1] = clamp(255 * Math.pow(px[i+1]/255, state.gamma), 0, 255);
+      px[i+2] = clamp(255 * Math.pow(px[i+2]/255, state.gamma), 0, 255);
+    }
+    if (state.blackPoint !== 0 || state.whitePoint !== 255) {
+      const s = 255 / (state.whitePoint - state.blackPoint);
+      px[i]   = clamp((px[i]  -state.blackPoint)*s, 0, 255);
+      px[i+1] = clamp((px[i+1]-state.blackPoint)*s, 0, 255);
+      px[i+2] = clamp((px[i+2]-state.blackPoint)*s, 0, 255);
+    }
+  }
+  srcCtx.putImageData(id, 0, 0);
 }
 
 // ─── Palette colour mapping ───────────────────────────────────────────────────
@@ -340,13 +478,15 @@ function drawFullColor() {
   fxCtx.fillRect(0, 0, W, H);
 
   const srcData = srcCtx.getImageData(0, 0, W, H);
-  const px   = srcData.data;
-  const cs   = state.cellSize;
-  const step = cs + state.spacing;
+  const px     = srcData.data;
+  const step   = gridStep(W);
+  const cs     = step;
+  const skipBr = skipThreshold();
 
-  if (['ascii','shapes','flowers','code','stars','hearts'].includes(state.ditherMode)) {
-    const fontScale = ['stars','hearts','shapes','flowers'].includes(state.ditherMode) ? 1.45 : 1.0;
-    fxCtx.font         = `${cs * fontScale}px monospace`;
+  const isTextMode = TEXT_DITHER_MODES.includes(state.ditherMode);
+  const chars = isTextMode ? getSortedChars() : '';
+  if (isTextMode) {
+    fxCtx.font         = `${glyphFontSize(cs, state.ditherMode)}px monospace`;
     fxCtx.textAlign    = 'center';
     fxCtx.textBaseline = 'middle';
   }
@@ -360,8 +500,8 @@ function drawFullColor() {
       const r   = Math.min(255, px[idx]   * e);
       const g   = Math.min(255, px[idx+1] * e);
       const b   = Math.min(255, px[idx+2] * e);
-      const br  = (0.299*r + 0.587*g + 0.114*b) / 255;
-      if (br < 0.02) continue;
+      const br  = brightness(r, g, b);
+      if (br < skipBr) continue;
 
       const col  = state.paletteColors.length ? nearestPaletteColor(r, g, b) : { r, g, b };
       const norm = state.uniformSize ? 1.0 : br;
@@ -404,34 +544,15 @@ function drawFullColor() {
           fxCtx.fillRect(cx2 - thick * 0.5, cy2 - arm, thick, arm * 2);
           break;
         }
-        case 'shapes': {
-          const SHAPES = ['─','✕','◣','●','■'];
-          fxCtx.fillText(SHAPES[Math.floor(norm * (SHAPES.length - 1))], cx2, cy2);
-          break;
-        }
-        case 'flowers': {
-          const SHAPES = ['✢','✻','✽','❊','✿'];
-          fxCtx.fillText(SHAPES[Math.floor(norm * (SHAPES.length - 1))], cx2, cy2);
-          break;
-        }
-        case 'code': {
-          const CODE = ['<','>','/','=','{','}','#','@','&','!','%',';',':','~'];
-          fxCtx.fillText(CODE[Math.floor(norm * (CODE.length - 1))], cx2, cy2);
-          break;
-        }
-        case 'stars': {
-          const STARS = ['✦','✧','✩','✬','✭','✰','★︎','✸'];
-          fxCtx.fillText(STARS[Math.floor(norm * (STARS.length - 1))], cx2, cy2);
-          break;
-        }
+        case 'ascii':
+        case 'shapes':
+        case 'flowers':
+        case 'code':
+        case 'stars':
         case 'hearts': {
-          const HEARTS = ['·','♡','♥︎','❤︎'];
-          fxCtx.fillText(HEARTS[Math.floor(norm * (HEARTS.length - 1))], cx2, cy2);
-          break;
-        }
-        case 'ascii': {
-          const ASCII = ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
-          fxCtx.fillText(ASCII[Math.floor(norm * (ASCII.length - 1))], cx2, cy2);
+          if (!chars.length) break;
+          const ch = chars[Math.floor(norm * (chars.length - 1))];
+          if (ch !== ' ') fxCtx.fillText(ch, cx2, cy2);
           break;
         }
       }
@@ -444,57 +565,6 @@ function drawFullColor() {
 // ─── Post Effects ─────────────────────────────────────────────────────────────
 function applyPostFx() {
   const W = fxCanvas.width, H = fxCanvas.height;
-
-  if (state.postBloom > 0) {
-    const snap = document.createElement('canvas');
-    snap.width = W; snap.height = H;
-    snap.getContext('2d').drawImage(fxCanvas, 0, 0);
-    const bc = document.createElement('canvas');
-    bc.width = W; bc.height = H;
-    const bx = bc.getContext('2d');
-    bx.filter = `blur(${state.postBloom * 18}px) brightness(${1 + state.postBloom * 0.6})`;
-    bx.drawImage(snap, 0, 0);
-    fxCtx.globalCompositeOperation = 'screen';
-    fxCtx.globalAlpha = state.postBloom * 0.75;
-    fxCtx.drawImage(bc, 0, 0);
-    fxCtx.globalCompositeOperation = 'source-over';
-    fxCtx.globalAlpha = 1;
-  }
-
-  if (state.postGrain > 0) {
-    const gc = document.createElement('canvas');
-    gc.width = W; gc.height = H;
-    const gx = gc.getContext('2d');
-    const id = gx.createImageData(W, H);
-    const d  = id.data;
-    for (let i = 0; i < W * H; i++) {
-      const v = Math.floor(Math.random() * 255);
-      d[i*4] = d[i*4+1] = d[i*4+2] = v;
-      d[i*4+3] = Math.floor(state.postGrain * 55);
-    }
-    gx.putImageData(id, 0, 0);
-    fxCtx.globalCompositeOperation = 'overlay';
-    fxCtx.globalAlpha = state.postGrain * 0.65;
-    fxCtx.drawImage(gc, 0, 0);
-    fxCtx.globalCompositeOperation = 'source-over';
-    fxCtx.globalAlpha = 1;
-  }
-
-  if (state.postZoomBlur > 0) {
-    const snap = document.createElement('canvas');
-    snap.width = W; snap.height = H;
-    snap.getContext('2d').drawImage(fxCanvas, 0, 0);
-    const steps = 10;
-    for (let i = 1; i <= steps; i++) {
-      const t     = i / steps;
-      const scale = 1 + state.postZoomBlur * 0.1 * t;
-      fxCtx.globalAlpha = (1 - t) * 0.22 * state.postZoomBlur;
-      fxCtx.drawImage(snap,
-        (W - W * scale) / 2, (H - H * scale) / 2,
-        W * scale, H * scale);
-    }
-    fxCtx.globalAlpha = 1;
-  }
 
   if (state.colorFilter) {
     const FILTER_CSS = {
@@ -628,13 +698,22 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 });
 
 // ─── Dither mode ──────────────────────────────────────────────────────────────
+function updateModeUI() {
+  const isText = TEXT_DITHER_MODES.includes(state.ditherMode);
+  document.getElementById('ratio-wrap').style.display  = state.ditherMode === 'square' ? '' : 'none';
+  document.getElementById('charset-row').style.display = isText ? '' : 'none';
+}
+
 document.querySelectorAll('.dither-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     state.ditherMode = btn.dataset.dither;
     document.querySelectorAll('.dither-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('ratio-wrap').style.display =
-      state.ditherMode === 'square' ? '' : 'none';
+    if (TEXT_DITHER_MODES.includes(state.ditherMode) && DEFAULT_CHARSETS[state.ditherMode]) {
+      state.charset = DEFAULT_CHARSETS[state.ditherMode];
+      document.getElementById('charset-input').value = state.charset;
+    }
+    updateModeUI();
   });
 });
 
@@ -644,18 +723,21 @@ document.getElementById('btn-uniform').addEventListener('click', () => {
   document.getElementById('btn-uniform').classList.toggle('active', state.uniformSize);
 });
 
+// ─── Characters (grid density) & Character Set ────────────────────────────────
+document.getElementById('sl-charcols').addEventListener('input', e => {
+  state.charCols = parseInt(e.target.value, 10);
+  document.getElementById('val-charcols').textContent = state.charCols;
+});
+
+document.getElementById('charset-input').value = state.charset;
+document.getElementById('charset-input').addEventListener('input', e => {
+  state.charset = e.target.value;
+});
+
 // ─── Sliders ──────────────────────────────────────────────────────────────────
 document.getElementById('sl-exposure').addEventListener('input', e => {
   state.paletteExposure = parseFloat(e.target.value);
   document.getElementById('val-exposure').textContent = state.paletteExposure.toFixed(2);
-});
-document.getElementById('sl-cellsize').addEventListener('input', e => {
-  state.cellSize = parseInt(e.target.value);
-  document.getElementById('val-cellsize').textContent = e.target.value;
-});
-document.getElementById('sl-spacing').addEventListener('input', e => {
-  state.spacing = parseInt(e.target.value);
-  document.getElementById('val-spacing').textContent = e.target.value;
 });
 
 function formatRatio(v) {
@@ -668,18 +750,24 @@ document.getElementById('sl-ratio').addEventListener('input', e => {
   document.getElementById('val-ratio').textContent = formatRatio(state.squareRatio);
 });
 
-document.getElementById('sl-bloom').addEventListener('input', e => {
-  state.postBloom = parseFloat(e.target.value);
-  document.getElementById('val-bloom').textContent = parseFloat(e.target.value).toFixed(2);
-});
-document.getElementById('sl-grain').addEventListener('input', e => {
-  state.postGrain = parseFloat(e.target.value);
-  document.getElementById('val-grain').textContent = parseFloat(e.target.value).toFixed(2);
-});
-document.getElementById('sl-zblur').addEventListener('input', e => {
-  state.postZoomBlur = parseFloat(e.target.value);
-  document.getElementById('val-zblur').textContent = parseFloat(e.target.value).toFixed(2);
-});
+updateModeUI();
+
+// ─── Preprocessing sliders ──────────────────────────────────────────────────────
+function bindPreSlider(id, valId, key, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    state[key] = parseFloat(sl.value);
+    vl.textContent = fmt ? fmt(state[key]) : state[key];
+  });
+}
+bindPreSlider('sl-stretch-x', 'val-stretch-x', 'stretchX',    v => v.toFixed(2));
+bindPreSlider('sl-stretch-y', 'val-stretch-y', 'stretchY',    v => v.toFixed(2));
+bindPreSlider('sl-blur',      'val-blur',      'blurAmount',  v => v);
+bindPreSlider('sl-pre-grain', 'val-pre-grain', 'grainAmount', v => v.toFixed(2));
+bindPreSlider('sl-gamma',     'val-gamma',     'gamma',       v => v.toFixed(1));
+bindPreSlider('sl-black',     'val-black',     'blackPoint',  v => Math.round(v));
+bindPreSlider('sl-white',     'val-white',     'whitePoint',  v => Math.round(v));
 
 // ─── Flip (mirror) ────────────────────────────────────────────────────────────
 document.getElementById('btn-flip').addEventListener('click', e => {

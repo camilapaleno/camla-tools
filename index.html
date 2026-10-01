@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>cam.tools</title>
-  <link rel="icon" type="image/svg+xml" href="c-tools.svg">
+  <link rel="icon" type="image/svg+xml" href="homepage/c-tools.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
@@ -252,12 +252,14 @@
     @media (max-width: 900px) {
       .page { flex-direction: column; }
       .hp-sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid #078e00;
+        width: calc(100% - 20px);
+        height: fit-content;
         min-height: 0;
       }
       .hp-sidebar .hp-ascii-seq { margin-top: 0; }
+      .hp-main {
+        margin: 10px;
+      }
     }
   </style>
 </head>
@@ -343,30 +345,30 @@
 
     <div class="reel">
       <a href="media-mockups/index.html" class="reel-item">
-        <img src="media-mockup-thumb-2.gif" alt="Media Mockups">
+        <img src="homepage/media-mockup-thumb.gif" alt="Media Mockups">
         <span class="reel-caption">Media Mockups</span>
       </a>
       <a href="image-distort/index.html" class="reel-item">
-        <img src="image-distort-thumb.png" alt="Image Distort">
+        <img src="homepage/image-distort-thumb.png" alt="Image Distort">
         <span class="reel-caption">Image Distort</span>
       </a>
 
       <a href="image-dither/index.html" class="reel-item">
-        <img src="image-dither-thumb.png" alt="Image Dither">
+        <img src="homepage/image-dither-thumb.png" alt="Image Dither">
         <span class="reel-caption">Image Dither</span>
       </a>      
 
       <a href="image-crt/index.html" class="reel-item">
-        <img src="image-crt-thumb.png" alt="Image CRT">
+        <img src="homepage/image-crt-thumb.png" alt="Image CRT">
         <span class="reel-caption">Image CRT</span>
       </a>
       <a href="ascii-svg-tool/index.html" class="reel-item">
-        <img src="ascii-svg-thumb.png" alt="ASCII SVG">
+        <img src="homepage/ascii-svg-thumb.png" alt="ASCII SVG">
         <span class="reel-caption">ASCII SVG</span>
       </a>
 
       <a href="image-recolor/index.html" class="reel-item">
-        <img src="image-recolor-thumb.png" alt="Image Recolor">
+        <img src="homepage/image-recolor-thumb.png" alt="Image Recolor">
         <span class="reel-caption">Image Recolor</span>
       </a>
 
@@ -376,16 +378,16 @@
       </a> -->     
 
       <a href="ascii-webcam-tool/index.html" class="reel-item">
-        <img src="ascii-webcam-thumb-2.png" alt="ASCII Webcam">
+        <img src="homepage/ascii-webcam-thumb.png" alt="ASCII Webcam">
         <span class="reel-caption">ASCII Webcam</span>
       </a>
       <a href="scan-type-tool/index.html" class="reel-item">
-        <img src="scan-type-thumb.png" alt="Scan Type">
+        <img src="homepage/scan-type-thumb.png" alt="Scan Type">
         <span class="reel-caption">Scan Type</span>
       </a>
 
       <a href="image-grain/index.html" class="reel-item">
-        <img src="image-grain-thumb.jpg" alt="Image Grain">
+        <img src="homepage/image-grain-thumb.jpg" alt="Image Grain">
         <span class="reel-caption">Image Grain</span>
       </a>
 
@@ -396,12 +398,12 @@
 
 
       <a href="chladni-tool/index.html" class="reel-item">
-        <img src="chladni-thumb.png" alt="Chladni Art">
+        <img src="homepage/chladni-thumb.png" alt="Chladni Art">
         <span class="reel-caption">Chladni Art</span>
       </a>
 
       <a href="ascii-graphic-tool/index.html" class="reel-item">
-        <img src="ascii-graphic-thumb.jpg" alt="ASCII Graphic">
+        <img src="homepage/ascii-graphic-thumb.jpg" alt="ASCII Graphic">
         <span class="reel-caption">ASCII Graphic</span>
       </a>
 
@@ -440,7 +442,7 @@
     const pre = document.getElementById('hp-ascii-txt');
     const box = pre.parentElement;
     try {
-      const res = await fetch('ascii-home.txt');
+      const res = await fetch('homepage/ascii-home.txt');
       pre.textContent = await res.text();
     } catch {
       return;
@@ -465,7 +467,7 @@
     const wrap = canvas.parentElement;
     let data;
     try {
-      const res = await fetch('ascii-home-sequence.json');
+      const res = await fetch('homepage/ascii-home-sequence.json');
       data = await res.json();
     } catch {
       return;
